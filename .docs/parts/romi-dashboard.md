@@ -1,5 +1,7 @@
 # Romi Dashboard (Javalin + Vue) — Parts Reference
 
+**Status: illustrative.** It describes code not yet written, and is unchecked.
+
 ## Overview
 
 The Romi dashboard is a **Javalin + Vue/TypeScript** web server running on the Romi image (port 5801), providing:

@@ -1,5 +1,7 @@
 # PhotonVision Install & Configure — Parts Reference
 
+**Status: illustrative.** It describes code not yet written, and is unchecked.
+
 ## Overview
 
 PhotonVision is installed via its **official install.sh script** (from `photon-image-modifier`). We do not fork or modify PhotonVision source — we configure it via:
@@ -207,23 +209,7 @@ curl -s https://api.github.com/repos/PhotonVision/photonvision/releases/latest \
 
 ## Testing PhotonVision on Image
 
-```bash
-# 1. Service status
-systemctl status photonvision
-
-# 2. Logs
-journalctl -u photonvision -f
-
-# 3. Web UI
-curl -s http://localhost:5800/ | head -20
-
-# 4. NT4 publishing (check robot NT4 server)
-# On robot: nt4-topic-list | grep PhotonVision
-
-# 5. Camera detection
-v4l2-ctl --list-devices
-libcamera-hello --list-cameras
-```
+The checks are in ftc-claude's `romi-image` skill.
 
 ## Upgrading PhotonVision in Image
 

@@ -1,5 +1,7 @@
 # WPILib / NT4 Integration — Parts Reference
 
+**Status: illustrative.** It describes code not yet written, and is unchecked.
+
 ## Overview
 
 This project integrates **WPILib 2026/2027** components into the Romi image:

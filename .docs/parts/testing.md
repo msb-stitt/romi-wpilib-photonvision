@@ -1,5 +1,7 @@
 # Testing — Parts Reference
 
+**Status: illustrative.** It describes code not yet written, and is unchecked.
+
 ## Test Philosophy
 
 - **Test at boundaries**: CLI args, base image state, external commands (qemu, dd, systemctl)

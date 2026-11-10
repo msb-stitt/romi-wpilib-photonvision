@@ -1,5 +1,7 @@
 # Hardware Testing & QEMU — Parts Reference
 
+**Status: illustrative.** It describes code not yet written, and is unchecked.
+
 ## Overview
 
 Testing strategy follows **dual-track**: QEMU for development iteration, real hardware for validation.
@@ -112,29 +114,7 @@ echo "Smoke test PASSED"
 
 ### Serial Console Access (from Docker)
 
-```bash
-# macOS host runs ser2net (see integration-plan.md)
-# Docker container connects via TCP:
-
-# Raw TCP
-nc 192.168.100.1 3323  # RPi
-nc 192.168.100.1 3324  # Orange Pi 5
-
-# With logging + PTY
-socat TCP:192.168.100.1:3323 PTY,link=/tmp/rpi-console,raw,echo=0
-screen /tmp/rpi-console 115200
-
-# Python automation
-python3 -c "
-import telnetlib, sys
-tn = telnetlib.Telnet('192.168.100.1', 3323)
-tn.read_until(b'login:')
-tn.write(b'ubuntu\n')
-tn.read_until(b'Password:')
-tn.write(b'ubuntu\n')
-# ... interact
-"
-```
+The steps are in ftc-claude's `romi-image` skill.
 
 ## Hardware Validation (Validation Track)
 
@@ -152,26 +132,7 @@ tn.write(b'ubuntu\n')
 
 ### Flashing Workflow
 
-```bash
-#!/bin/bash
-# flash-dut.sh — flash image to microSD on macOS
-
-IMG="$1"
-DISK="$2"  # e.g., /dev/rdisk4
-
-if [[ -z "$IMG" || -z "$DISK" ]]; then
-    echo "Usage: $0 <image.img.xz> <disk-device>"
-    diskutil list
-    exit 1
-fi
-
-echo "Flashing $IMG to $DISK..."
-diskutil unmountDisk "$DISK"
-xz -dc "$IMG" | sudo dd of="$DISK" bs=4M status=progress conv=fsync
-sync
-diskutil eject "$DISK"
-echo "Done. Insert into DUT and power on."
-```
+The steps are in ftc-claude's `romi-image` skill.
 
 ### Per-Boot Validation Checklist
 

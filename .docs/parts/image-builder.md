@@ -1,5 +1,7 @@
 # Image Builder — Parts Reference
 
+**Status: illustrative.** It describes code not yet written, and is unchecked.
+
 ## Overview
 
 The image builder is a **shell script pipeline** (`build-romi-image.sh` + modular stage scripts) that takes a base OS image and produces a bootable Romi image for a specific platform.
@@ -58,12 +60,7 @@ UART_BAUD=1500000
 
 ## Stage Script Conventions
 
-Each stage script:
-- **Idempotent**: safe to run multiple times, converges to same state
-- **Parameterized**: reads from platform profile + CLI args
-- **Logged**: writes to `$BUILD_LOG` with timestamps
-- **Validated**: exits non-zero on failure with clear message
-- **Dry-run aware**: respects `DRY_RUN=1` (prints commands without executing)
+A stage script follows the conventions in ftc-claude's `romi-image` skill.
 
 ```bash
 #!/bin/bash

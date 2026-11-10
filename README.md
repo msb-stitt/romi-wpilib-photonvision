@@ -125,7 +125,7 @@ open http://192.168.100.10:5801  # Romi Dashboard
 ```
 .
 ├── .docs/
-│   ├── constitution.md           # Project constitution
+│   ├── requirements.md           # Requirements
 │   ├── integration-plan.md       # 13-week implementation plan
 │   ├── architecture/             # ADRs (decision records)
 │   │   ├── ADR-001-base-os-selection.md
@@ -136,8 +136,7 @@ open http://192.168.100.10:5801  # Romi Dashboard
 │       ├── photonvision.md
 │       ├── wpilib.md
 │       ├── hardware-testing.md
-│       ├── testing.md
-│       └── constitution-maintenance.md
+│       └── testing.md
 ├── scripts/
 │   ├── build-romi-image.sh       # Main orchestrator
 │   ├── stages/                   # Pipeline stages (01-07)
@@ -207,14 +206,14 @@ GitHub Actions (`.github/workflows/`):
 
 | Doc | Purpose |
 |-----|---------|
-| `.docs/constitution.md` | Authoritative development rules |
+| `.docs/requirements.md` | Requirements |
 | `.docs/integration-plan.md` | 13-week plan with phases |
 | `.docs/architecture/ADR-*.md` | Architecture Decision Records |
 | `.docs/parts/*.md` | Detailed technical references |
 
 ## Contributing
 
-1. Read `.docs/constitution.md` — it's the governing document
+1. Read ftc-claude's `.claude/rules/constitution.md`, which governs this project
 2. Check `.docs/integration-plan.md` for current phase
 3. Create feature branch: `git switch -c feat/<short-name>`
 4. Make surgical changes, update docs in same commit

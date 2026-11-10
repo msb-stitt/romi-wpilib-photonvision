@@ -98,7 +98,7 @@
 
 | File | Purpose |
 |------|---------|
-| `constitution.md` | Project governing rules |
+| `requirements.md` | Requirements |
 | `integration-plan.md` | 13-week implementation plan with task checklist |
 | `README.md` | Project overview |
 | `architecture/ADR-001-base-os-selection.md` | Base OS decision (RPi OS Trixie for RPi) |
@@ -110,7 +110,6 @@
 | `parts/wpilib.md` | WPILib/NT4 integration reference |
 | `parts/hardware-testing.md` | QEMU + hardware validation reference |
 | `parts/testing.md` | Testing strategy reference |
-| `parts/constitution-maintenance.md` | Constitution amendment process |
 | `research/xrp-vs-romi-analysis.md` | XRP vs Romi protocol comparison |
 | `research/wpiromi-component-analysis.md` | Factual WPILib component inventory on Pi |
 | `bibliography.md` | This file |
