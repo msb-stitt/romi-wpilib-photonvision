@@ -222,8 +222,7 @@ GitHub Actions (`.github/workflows/`):
 
 ## License
 
-- **This project**: MIT (see `LICENSE`)
-- **PhotonVision**: MIT (upstream, configured not forked)
+- **This project**: BSD 3-Clause (see `LICENSE`)
 - **WPILib**: BSD-3-Clause (upstream, used as library)
 - **Raspberry Pi OS / Ubuntu**: Their respective licenses
 
