@@ -15,10 +15,11 @@ jobs:
     timeout-minutes: 120
     permissions:
       contents: write
-    env:
-      OUT_DIR: ${{ runner.temp }}/romi-image
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set the output directory
+        run: echo "OUT_DIR=$RUNNER_TEMP/romi-image" >> "$GITHUB_ENV"
 
       - name: Build
         run: sudo env DRY_RUN=0 OUT_DIR="$OUT_DIR" image/build.sh
