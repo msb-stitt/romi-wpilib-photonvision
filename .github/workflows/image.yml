@@ -1,0 +1,50 @@
+# image.yml: builds the Romi image with image/build.sh on an arm64 runner. A push that changes
+# image/ keeps the image as a workflow artifact; a tag starting with v publishes it as a release.
+name: Romi image
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths: ['image/**', '.github/workflows/image.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      OUT_DIR: ${{ runner.temp }}/romi-image
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: sudo env DRY_RUN=0 OUT_DIR="$OUT_DIR" image/build.sh
+
+      - name: Check the release file limit
+        run: |
+          size=$(stat -c %s "$OUT_DIR/romi-image.img.xz")
+          echo "romi-image.img.xz: $size bytes"
+          [[ $size -lt 2147483648 ]] || { echo "over GitHub's 2 GiB release file limit"; exit 1; }
+          cat "$OUT_DIR/image-metadata.json"
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        with:
+          name: romi-image
+          path: |
+            ${{ env.OUT_DIR }}/romi-image.img.xz
+            ${{ env.OUT_DIR }}/image-metadata.json
+            ${{ env.OUT_DIR }}/build.log
+          compression-level: 0
+          retention-days: 7
+
+      - name: Release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes \
+            "$OUT_DIR/romi-image.img.xz" "$OUT_DIR/image-metadata.json"
