@@ -16,6 +16,50 @@
         <p id="romi-status">Reading its status page</p>
         <button id="restart">Restart wpilibws-romi</button>
         <p id="restart-result"></p>
+        <h3>Its latest log lines</h3>
+        <pre id="service-log">Reading the log</pre>
+    </section>
+
+    <section>
+        <h2>External IO</h2>
+        <p>Each EXT pin is DIO, Analog In or PWM; EXT 0 is DIO or PWM.</p>
+        <table>
+            <tr><th>Pin</th><th>Function</th><th>Robot code port</th></tr>
+            <tr><td>EXT 0</td><td><select id="ext0">
+                <option value="dio">DIO</option>
+                <option value="pwm">PWM</option>
+            </select></td><td id="port0"></td></tr>
+            <tr><td>EXT 1</td><td><select id="ext1">
+                <option value="dio">DIO</option>
+                <option value="ain">Analog In</option>
+                <option value="pwm">PWM</option>
+            </select></td><td id="port1"></td></tr>
+            <tr><td>EXT 2</td><td><select id="ext2">
+                <option value="dio">DIO</option>
+                <option value="ain">Analog In</option>
+                <option value="pwm">PWM</option>
+            </select></td><td id="port2"></td></tr>
+            <tr><td>EXT 3</td><td><select id="ext3">
+                <option value="dio">DIO</option>
+                <option value="ain">Analog In</option>
+                <option value="pwm">PWM</option>
+            </select></td><td id="port3"></td></tr>
+            <tr><td>EXT 4</td><td><select id="ext4">
+                <option value="dio">DIO</option>
+                <option value="ain">Analog In</option>
+                <option value="pwm">PWM</option>
+            </select></td><td id="port4"></td></tr>
+        </table>
+        <p><button id="save-io">Save and restart wpilibws-romi</button></p>
+        <p id="io-result"></p>
+    </section>
+
+    <section>
+        <h2>Gyro</h2>
+        <p>Zero offset: <span id="gyro-offset">reading</span></p>
+        <p>Set the Romi on a flat surface and keep it still until calibration finishes.</p>
+        <p><button id="calibrate">Calibrate the gyro</button></p>
+        <p id="calibrate-result"></p>
     </section>
 
     <section>
@@ -28,7 +72,7 @@
         <p id="save-result"></p>
     </section>
 
-    <p id="admin-note">Saving and restarting need administrative access: choose
+    <p id="admin-note">Saving, restarting and calibrating need administrative access: choose
         <em>Limited access</em> at the top of the page, then turn it on.</p>
 </body>
 </html>

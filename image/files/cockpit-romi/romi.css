@@ -12,3 +12,15 @@ textarea {
 #admin-note {
     color: #555;
 }
+
+pre {
+    background: #f4f4f4;
+    padding: 0.5rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+}
+
+td, th {
+    padding: 0.2rem 0.8rem 0.2rem 0;
+    text-align: left;
+}
