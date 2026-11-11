@@ -1,0 +1,14 @@
+body {
+    font-family: sans-serif;
+    margin: 1rem 2rem;
+    max-width: 48rem;
+}
+
+textarea {
+    width: 100%;
+    font-family: monospace;
+}
+
+#admin-note {
+    color: #555;
+}

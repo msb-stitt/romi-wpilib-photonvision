@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Romi</title>
+    <link rel="stylesheet" href="romi.css">
+    <script src="../base1/cockpit.js"></script>
+    <script src="romi.js" defer></script>
+</head>
+<body>
+    <h1>Romi</h1>
+
+    <section>
+        <h2>Romi service</h2>
+        <p>wpilibws-romi: <strong id="service-state">checking</strong></p>
+        <p id="romi-status">Reading its status page</p>
+        <button id="restart">Restart wpilibws-romi</button>
+        <p id="restart-result"></p>
+    </section>
+
+    <section>
+        <h2>romi.json</h2>
+        <textarea id="romi-json" rows="12" spellcheck="false"></textarea>
+        <p>
+            <button id="save">Save and restart wpilibws-romi</button>
+            <button id="reload">Reload from the Pi</button>
+        </p>
+        <p id="save-result"></p>
+    </section>
+
+    <p id="admin-note">Saving and restarting need administrative access: choose
+        <em>Limited access</em> at the top of the page, then turn it on.</p>
+</body>
+</html>
