@@ -62,6 +62,47 @@
         <p id="calibrate-result"></p>
     </section>
 
+    <section id="wifi">
+        <h2>WiFi</h2>
+        <p>
+            <label><input type="radio" name="wifi-mode" value="ap" checked> Access point</label>
+            <label><input type="radio" name="wifi-mode" value="client"> Join a network</label>
+        </p>
+        <table>
+            <tr><td>SSID</td><td><input id="wifi-ssid" maxlength="32"></td></tr>
+            <tr><td>Passphrase</td><td><input id="wifi-psk" type="password" maxlength="63"></td></tr>
+            <tr class="ap-only"><td>Channel</td><td><select id="wifi-channel"></select></td></tr>
+            <tr class="client-only"><td>Address</td><td><select id="wifi-method">
+                <option value="auto">DHCP</option>
+                <option value="manual">Static</option>
+            </select></td></tr>
+            <tr class="client-only static-only"><td>Address/prefix</td><td><input id="wifi-address" placeholder="192.168.1.50/24"></td></tr>
+            <tr class="client-only static-only"><td>Gateway</td><td><input id="wifi-gateway"></td></tr>
+            <tr class="client-only static-only"><td>DNS</td><td><input id="wifi-dns"></td></tr>
+        </table>
+        <p class="ap-only">The access point is at 10.0.0.2 and gives out addresses to what joins it.</p>
+        <p><button id="save-wifi">Save and apply</button></p>
+        <p id="wifi-result"></p>
+    </section>
+
+    <section id="eth">
+        <h2>Ethernet</h2>
+        <table>
+            <tr><td>Address</td><td><select id="eth-method">
+                <option value="auto">DHCP</option>
+                <option value="manual">Static</option>
+            </select></td></tr>
+            <tr class="static-only"><td>Address/prefix</td><td><input id="eth-address" placeholder="10.0.1.50/24"></td></tr>
+            <tr class="static-only"><td>Gateway</td><td><input id="eth-gateway"></td></tr>
+            <tr class="static-only"><td>DNS</td><td><input id="eth-dns"></td></tr>
+        </table>
+        <p><button id="save-eth">Save and apply</button></p>
+        <p id="eth-result"></p>
+    </section>
+
+    <p>A change to the network you reached this page through drops this page; reach the Pi
+        again at its new address.</p>
+
     <section>
         <h2>romi.json</h2>
         <textarea id="romi-json" rows="12" spellcheck="false"></textarea>

@@ -1,6 +1,6 @@
 #!/bin/bash
 # 06-romi-page.sh: the Romi page, first in Cockpit's menu: wpilibws-romi's status, log and restart,
-# the external IO, the gyro calibration, and romi.json edited.
+# the external IO, the gyro calibration, the WiFi and Ethernet settings, and romi.json edited.
 set -euo pipefail
 
 source "$(dirname "$0")/../lib/common.sh"

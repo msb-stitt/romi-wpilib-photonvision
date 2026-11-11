@@ -33,7 +33,7 @@ function refreshRomiStatus() {
             const firmware = status["firmware-status"].firmwareMatch ? "matches" : "does not match";
             show("romi-status",
                  `Service ${status["service-version"].serviceVersion}; ` +
-                 `32U4 firmware ${firmware}; battery ${battery.voltage} V`);
+                 `32U4 firmware ${firmware}; battery ${Number(battery.voltage).toFixed(2)} V`);
         })
         .catch(err => show("romi-status", `Its status page did not answer: ${failure(err)}`));
 }
@@ -167,6 +167,160 @@ function calibrate() {
         })
         .catch(err => done(`Calibration did not start: ${failure(err)}`));
 }
+
+// The NetworkManager profile for WiFi, made by 02-network.sh, in either mode.
+const WIFI = "WPILibPi";
+const AP_ADDRESS = "10.0.0.2/24";
+const WIFI_CHANNELS = 11;
+const WIFI_FIELDS = ["802-11-wireless.mode", "802-11-wireless.ssid", "802-11-wireless.channel",
+                     "802-11-wireless-security.psk", "ipv4.method", "ipv4.addresses",
+                     "ipv4.gateway", "ipv4.dns"];
+const ETH_FIELDS = ["ipv4.method", "ipv4.addresses", "ipv4.gateway", "ipv4.dns"];
+
+function value(id) {
+    return document.getElementById(id).value.trim();
+}
+
+function setValue(id, text) {
+    document.getElementById(id).value = text;
+}
+
+// The profile's fields, one to a line in nmcli's output.
+function nmGet(profile, fields) {
+    return cockpit.spawn(["nmcli", "-s", "-t", "-g", fields.join(","), "connection", "show", profile],
+                         { superuser: "try", err: "message" })
+        .then(out => out.replace(/\n$/, "").split("\n"));
+}
+
+function nmApply(profile, settings) {
+    return cockpit.spawn(["nmcli", "connection", "modify", profile, ...settings],
+                         { superuser: "require", err: "message" })
+        .then(() => cockpit.spawn(["nmcli", "connection", "up", profile],
+                                  { superuser: "require", err: "message" }));
+}
+
+function ethProfile() {
+    return cockpit.spawn(["nmcli", "-t", "-g", "UUID,TYPE", "connection", "show"], { err: "message" })
+        .then(out => {
+            const line = out.split("\n").find(l => l.endsWith(":802-3-ethernet"));
+            if (!line) throw new Error("no Ethernet profile");
+            return line.split(":")[0];
+        });
+}
+
+function wifiMode() {
+    return document.querySelector("input[name=wifi-mode]:checked").value;
+}
+
+function showNetworkRows() {
+    const wifi = document.getElementById("wifi");
+    const client = wifiMode() === "client";
+    wifi.querySelectorAll(".ap-only").forEach(e => { e.hidden = client; });
+    wifi.querySelectorAll(".client-only").forEach(e => { e.hidden = !client; });
+    wifi.querySelectorAll(".static-only").forEach(e => {
+        e.hidden = !client || value("wifi-method") !== "manual";
+    });
+    document.getElementById("eth").querySelectorAll(".static-only").forEach(e => {
+        e.hidden = value("eth-method") !== "manual";
+    });
+}
+
+function loadNetwork() {
+    nmGet(WIFI, WIFI_FIELDS)
+        .then(([mode, ssid, channel, psk, method, address, gateway, dns]) => {
+            const client = mode !== "ap";
+            document.querySelector(`input[name=wifi-mode][value=${client ? "client" : "ap"}]`).checked = true;
+            setValue("wifi-ssid", ssid);
+            setValue("wifi-psk", psk);
+            setValue("wifi-channel", channel === "0" ? "6" : channel);
+            setValue("wifi-method", client && method === "manual" ? "manual" : "auto");
+            setValue("wifi-address", client ? address : "");
+            setValue("wifi-gateway", client ? gateway : "");
+            setValue("wifi-dns", client ? dns : "");
+            showNetworkRows();
+        })
+        .catch(err => show("wifi-result", `Could not read the WiFi settings: ${failure(err)}`));
+    ethProfile()
+        .then(profile => nmGet(profile, ETH_FIELDS))
+        .then(([method, address, gateway, dns]) => {
+            setValue("eth-method", method === "manual" ? "manual" : "auto");
+            setValue("eth-address", address);
+            setValue("eth-gateway", gateway);
+            setValue("eth-dns", dns);
+            showNetworkRows();
+        })
+        .catch(err => show("eth-result", `Could not read the Ethernet settings: ${failure(err)}`));
+}
+
+// The ipv4 settings for DHCP or a static address, from the inputs named by prefix.
+function ipv4Settings(prefix) {
+    if (value(`${prefix}-method`) !== "manual") {
+        return ["ipv4.method", "auto", "ipv4.addresses", "", "ipv4.gateway", "", "ipv4.dns", ""];
+    }
+    if (!/^\d+\.\d+\.\d+\.\d+\/\d+$/.test(value(`${prefix}-address`))) {
+        throw new Error("the address is written like 192.168.1.50/24");
+    }
+    return ["ipv4.method", "manual", "ipv4.addresses", value(`${prefix}-address`),
+            "ipv4.gateway", value(`${prefix}-gateway`), "ipv4.dns", value(`${prefix}-dns`)];
+}
+
+function saveWifi() {
+    const ssid = value("wifi-ssid");
+    const psk = document.getElementById("wifi-psk").value;
+    let settings;
+    try {
+        if (ssid.length < 1) throw new Error("the SSID is empty");
+        if (psk.length < 8 || psk.length > 63) throw new Error("the passphrase is 8 to 63 characters");
+        settings = ["802-11-wireless.ssid", ssid,
+                    "802-11-wireless-security.key-mgmt", "wpa-psk",
+                    "802-11-wireless-security.psk", psk];
+        if (wifiMode() === "ap") {
+            settings.push("802-11-wireless.mode", "ap", "802-11-wireless.band", "bg",
+                          "802-11-wireless.channel", value("wifi-channel"),
+                          "ipv4.method", "shared", "ipv4.addresses", AP_ADDRESS,
+                          "ipv4.gateway", "", "ipv4.dns", "");
+        } else {
+            settings.push("802-11-wireless.mode", "infrastructure", "802-11-wireless.band", "",
+                          "802-11-wireless.channel", "0", ...ipv4Settings("wifi"));
+        }
+    } catch (err) {
+        show("wifi-result", `Not saved: ${err.message}`);
+        return;
+    }
+    show("wifi-result", "Applying");
+    nmApply(WIFI, settings)
+        .then(() => show("wifi-result", "Saved and applied"))
+        .catch(err => show("wifi-result", `Not applied: ${failure(err)}`))
+        .finally(loadNetwork);
+}
+
+function saveEth() {
+    let settings;
+    try {
+        settings = ipv4Settings("eth");
+    } catch (err) {
+        show("eth-result", `Not saved: ${err.message}`);
+        return;
+    }
+    show("eth-result", "Applying");
+    ethProfile()
+        .then(profile => nmApply(profile, settings))
+        .then(() => show("eth-result", "Saved and applied"))
+        .catch(err => show("eth-result", `Not applied: ${failure(err)}`))
+        .finally(loadNetwork);
+}
+
+for (let ch = 1; ch <= WIFI_CHANNELS; ch++) {
+    document.getElementById("wifi-channel").add(new Option(String(ch), String(ch)));
+}
+document.querySelectorAll("input[name=wifi-mode]").forEach(e => e.addEventListener("change", showNetworkRows));
+document.getElementById("wifi-method").addEventListener("change", showNetworkRows);
+document.getElementById("eth-method").addEventListener("change", showNetworkRows);
+document.getElementById("save-wifi").addEventListener("click", saveWifi);
+document.getElementById("save-eth").addEventListener("click", saveEth);
+// The passphrase reads back only with administrative access, which can be turned on after loading.
+cockpit.permission({ admin: true }).addEventListener("changed", loadNetwork);
+loadNetwork();
 
 for (let i = 0; i < EXT_PINS; i++) document.getElementById(`ext${i}`).addEventListener("change", showPorts);
 document.getElementById("restart").addEventListener("click", restart);
