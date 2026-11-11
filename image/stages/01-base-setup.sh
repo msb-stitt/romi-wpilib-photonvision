@@ -1,6 +1,6 @@
 #!/bin/bash
-# 01-base-setup.sh: the one account, pi/raspberry with sudo, SSH, the host name, and the serial
-# console on the PL011 UART.
+# 01-base-setup.sh: the one account, pi/raspberry with sudo, SSH, the host name, the serial
+# console on the PL011 UART, and cloud-init off, as its first boot would lock pi's password.
 set -euo pipefail
 
 source "$(dirname "$0")/../lib/common.sh"
@@ -51,6 +51,12 @@ if grep -qE "^127\.0\.1\.1[[:space:]].*\b$HOSTNAME_WANTED\b" /etc/hosts; then
     log "Already in /etc/hosts: 127.0.1.1 $HOSTNAME_WANTED"
 else
     ensure_line /etc/hosts "127.0.1.1	$HOSTNAME_WANTED"
+fi
+
+if [[ -f /etc/cloud/cloud-init.disabled ]]; then
+    log "Already off: cloud-init"
+else
+    run touch /etc/cloud/cloud-init.disabled
 fi
 
 ensure_line "$BOOT_MOUNT/config.txt" "enable_uart=1"
