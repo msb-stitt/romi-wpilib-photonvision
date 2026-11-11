@@ -1,6 +1,8 @@
 # Testing — Parts Reference
 
-**Status: illustrative.** It describes code not yet written, and is unchecked.
+**Status: superseded** on 2026-11-11 by [ADR-003](../architecture/ADR-003-base-and-network.md)
+and `image/`. It was illustrative from 2026-06-18, `bb49e90`, labelled so at `ae008de`: it
+describes code not written, and is unchecked.
 
 ## Test Philosophy
 

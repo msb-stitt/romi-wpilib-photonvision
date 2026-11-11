@@ -99,17 +99,17 @@
 | File | Purpose |
 |------|---------|
 | `requirements.md` | Requirements |
-| `integration-plan.md` | 13-week implementation plan with task checklist |
+| `integration-plan.md` | 13-week implementation plan with task checklist; superseded |
 | `README.md` | Project overview |
 | `architecture/ADR-001-base-os-selection.md` | Base OS decision (RPi OS Trixie for RPi) |
 | `architecture/ADR-002-32u4-flashing-approach.md` | 32U4 flashing via avrdude |
 | `architecture/ADR-003-base-and-network.md` | The base, the network and the versions used |
-| `parts/image-builder.md` | Image builder pipeline reference |
-| `parts/romi-dashboard.md` | Romi dashboard (Javalin+Vue) reference |
-| `parts/photonvision.md` | PhotonVision install/configure reference |
-| `parts/wpilib.md` | WPILib/NT4 integration reference |
-| `parts/hardware-testing.md` | QEMU + hardware validation reference |
-| `parts/testing.md` | Testing strategy reference |
+| `parts/image-builder.md` | Image builder pipeline reference; superseded |
+| `parts/romi-dashboard.md` | Romi dashboard (Javalin+Vue) reference; superseded |
+| `parts/photonvision.md` | PhotonVision install/configure reference; superseded |
+| `parts/wpilib.md` | WPILib/NT4 integration reference; superseded |
+| `parts/hardware-testing.md` | QEMU + hardware validation reference; superseded |
+| `parts/testing.md` | Testing strategy reference; superseded |
 | `research/xrp-vs-romi-analysis.md` | XRP vs Romi protocol comparison |
 | `research/wpiromi-component-analysis.md` | Factual WPILib component inventory on Pi |
 | `bibliography.md` | This file |

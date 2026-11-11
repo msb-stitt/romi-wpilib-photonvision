@@ -1,5 +1,9 @@
 # Romi WPILib + PhotonVision Integration Plan
 
+**Status: superseded** on 2026-11-11 by [ADR-003](architecture/ADR-003-base-and-network.md)
+and ftc-claude's plan *One Pi image for the Romi and PhotonVision*. It was illustrative from
+2026-06-17, `b29d872`, to then: nothing past Phase 0's partial spike was built.
+
 ## Goals
 
 1. **2026 Season (Primary)**: Produce bootable Romi images (RPi 4/5 + Orange Pi 5) running WPILib 2026.2.x + PhotonVision 2026.x with full Romi feature parity
