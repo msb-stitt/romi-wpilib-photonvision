@@ -103,7 +103,7 @@
 | `README.md` | Project overview |
 | `architecture/ADR-001-base-os-selection.md` | Base OS decision (RPi OS Trixie for RPi) |
 | `architecture/ADR-002-32u4-flashing-approach.md` | 32U4 flashing via avrdude |
-| `architecture/ADR-003-photonvision-wifi-preservation.md` | WiFi preservation strategy (planned) |
+| `architecture/ADR-003-base-and-network.md` | The base, the network and the versions used |
 | `parts/image-builder.md` | Image builder pipeline reference |
 | `parts/romi-dashboard.md` | Romi dashboard (Javalin+Vue) reference |
 | `parts/photonvision.md` | PhotonVision install/configure reference |
