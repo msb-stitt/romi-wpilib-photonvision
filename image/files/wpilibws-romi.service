@@ -1,0 +1,15 @@
+[Unit]
+Description=WPILib WebSocket server for the Romi (wpilibws-romi)
+After=network.target
+
+[Service]
+User=pi
+Group=pi
+SupplementaryGroups=i2c
+WorkingDirectory=/home/pi
+ExecStart=/usr/bin/node /usr/local/bin/wpilibws-romi -c /boot/firmware/romi.json
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
