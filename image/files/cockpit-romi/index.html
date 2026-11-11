@@ -62,6 +62,15 @@
         <p id="calibrate-result"></p>
     </section>
 
+    <section>
+        <h2>32U4 firmware</h2>
+        <p id="firmware-port">Looking for the 32U4's USB port</p>
+        <p>To write wpilibws-romi's firmware to the 32U4, connect a USB cable from the Pi to the
+            32U4's USB port.</p>
+        <p><button id="write-firmware" disabled>Write the firmware</button></p>
+        <pre id="firmware-log" hidden></pre>
+    </section>
+
     <section id="wifi">
         <h2>WiFi</h2>
         <p>
@@ -113,7 +122,8 @@
         <p id="save-result"></p>
     </section>
 
-    <p id="admin-note">Saving, restarting and calibrating need administrative access: choose
-        <em>Limited access</em> at the top of the page, then turn it on.</p>
+    <p id="admin-note">Saving, restarting, calibrating and writing the firmware need
+        administrative access: choose <em>Limited access</em> at the top of the page, then turn
+        it on.</p>
 </body>
 </html>

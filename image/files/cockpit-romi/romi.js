@@ -5,6 +5,9 @@ const ROMI_JSON = "/boot/firmware/romi.json";
 const STATUS_PORT = 9001;
 const LOG_LINES = "15";
 const EXT_PINS = 5;
+// uploadRomi.py writes the 32U4 over its USB port, from wpilibws-romi's own firmware.hex.
+const FIRMWARE_PORT = "/dev/ttyACM0";
+const UPLOAD_ROMI = "/usr/local/sbin/uploadRomi.py";
 // The robot code's first port for each function on the EXT pins, after the Romi's own.
 const FIRST_PORT = { dio: ["Digital", 8], ain: ["Analog In", 0], pwm: ["PWM", 2] };
 
@@ -45,10 +48,27 @@ function refreshLog() {
         .catch(err => show("service-log", `Could not read the log: ${failure(err)}`));
 }
 
+let writingFirmware = false;
+
+function refreshFirmwarePort() {
+    if (writingFirmware) return;
+    const button = document.getElementById("write-firmware");
+    cockpit.spawn(["test", "-e", FIRMWARE_PORT], { err: "ignore" })
+        .then(() => {
+            show("firmware-port", `The 32U4's USB port is connected, at ${FIRMWARE_PORT}.`);
+            button.disabled = false;
+        })
+        .catch(() => {
+            show("firmware-port", "The 32U4's USB port is not connected.");
+            button.disabled = true;
+        });
+}
+
 function refresh() {
     refreshServiceState();
     refreshRomiStatus();
     refreshLog();
+    refreshFirmwarePort();
 }
 
 function restart() {
@@ -57,6 +77,25 @@ function restart() {
         .then(() => show("restart-result", "Restarted"))
         .catch(err => show("restart-result", `Restart failed: ${failure(err)}`))
         .finally(() => setTimeout(refresh, 6000));
+}
+
+function writeFirmware() {
+    writingFirmware = true;
+    document.getElementById("write-firmware").disabled = true;
+    const log = document.getElementById("firmware-log");
+    log.hidden = false;
+    log.textContent = "";
+    cockpit.spawn([UPLOAD_ROMI, "-p", FIRMWARE_PORT], { superuser: "require", err: "out" })
+        .stream(data => { log.textContent += data; })
+        .then(() => {
+            log.textContent += "\nWritten. Restarting wpilibws-romi to read it.\n";
+            return restart();
+        })
+        .catch(err => { log.textContent += `\nNot written: ${failure(err)}\n`; })
+        .finally(() => {
+            writingFirmware = false;
+            refreshFirmwarePort();
+        });
 }
 
 function showPorts() {
@@ -326,6 +365,7 @@ for (let i = 0; i < EXT_PINS; i++) document.getElementById(`ext${i}`).addEventLi
 document.getElementById("restart").addEventListener("click", restart);
 document.getElementById("save-io").addEventListener("click", saveIo);
 document.getElementById("calibrate").addEventListener("click", calibrate);
+document.getElementById("write-firmware").addEventListener("click", writeFirmware);
 document.getElementById("save").addEventListener("click", saveRomiJson);
 document.getElementById("reload").addEventListener("click", loadRomiJson);
 
