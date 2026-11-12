@@ -5,7 +5,9 @@
 # command and runs none. The result is $OUT_DIR/romi-image.img.xz with image-metadata.json and
 # packages.txt, and SOURCES.md, sources.py's links to the upstream source of what it holds; the
 # card holds the same record in /etc/romi-image-release and /etc/romi-image-packages.txt.
-# RUNNER_IMAGE names the machine image the build ran on, if any.
+# Both name the build by `git describe --tags --always --dirty`: the tag, or the tag with the
+# commits since it, or the commit alone when no tag is reachable. RUNNER_IMAGE names the machine
+# image the build ran on, if any.
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-/var/tmp/romi-image}"
@@ -25,6 +27,7 @@ IMG="$OUT_DIR/romi-image.img"
 ROOT="$OUT_DIR/root"
 STAGE_DIR=/tmp/romi-image
 COMMIT="$(git -C "$IMAGE_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
+DESCRIBE="$(git -C "$IMAGE_DIR" describe --tags --always --dirty 2>/dev/null || echo unknown)"
 BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 RUNNER_IMAGE="${RUNNER_IMAGE:-not recorded}"
 loop=""
@@ -99,6 +102,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
     log "[DRY-RUN] write $ROOT/etc/romi-image-release and the package list"
 else
     cat > "$ROOT/etc/romi-image-release" <<EOF
+ROMI_IMAGE_DESCRIBE=$DESCRIBE
 ROMI_IMAGE_COMMIT=$COMMIT
 ROMI_IMAGE_BUILD_DATE=$BUILD_DATE
 ROMI_IMAGE_BASE=$(basename "$BASE_IMG_URL")
@@ -122,6 +126,7 @@ else
     cat > "$OUT_DIR/image-metadata.json" <<EOF
 {
     "buildDate": "$BUILD_DATE",
+    "describe": "$DESCRIBE",
     "commit": "$COMMIT",
     "runnerImage": "$RUNNER_IMAGE",
     "baseImage": "$(basename "$BASE_IMG_URL")",

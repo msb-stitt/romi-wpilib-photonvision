@@ -36,8 +36,10 @@ function loadImageBuild() {
                 const eq = line.indexOf("=");
                 if (eq > 0) release[line.slice(0, eq)] = line.slice(eq + 1);
             }
+            const name = release.ROMI_IMAGE_DESCRIBE ? `Image ${release.ROMI_IMAGE_DESCRIBE}, built` :
+                "Image built";
             show("image-build",
-                 `Image built from romi-wpilib-photonvision at ${release.ROMI_IMAGE_COMMIT} ` +
+                 `${name} from romi-wpilib-photonvision at ${release.ROMI_IMAGE_COMMIT} ` +
                  `on ${release.ROMI_IMAGE_BUILD_DATE}, from ${release.ROMI_IMAGE_BASE}.`);
         })
         .catch(err => show("image-build", `Could not read ${IMAGE_RELEASE}: ${failure(err)}`));
