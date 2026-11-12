@@ -8,6 +8,8 @@ const EXT_PINS = 5;
 // uploadRomi.py writes the 32U4 over its USB port, from wpilibws-romi's own firmware.hex.
 const FIRMWARE_PORT = "/dev/ttyACM0";
 const UPLOAD_ROMI = "/usr/local/sbin/uploadRomi.py";
+// image/build.sh writes this on the card it makes.
+const IMAGE_RELEASE = "/etc/romi-image-release";
 // The robot code's first port for each function on the EXT pins, after the Romi's own.
 const FIRST_PORT = { dio: ["Digital", 8], ain: ["Analog In", 0], pwm: ["PWM", 2] };
 
@@ -20,6 +22,25 @@ function show(id, text) {
 
 function failure(err) {
     return err.message || String(err);
+}
+
+function loadImageBuild() {
+    cockpit.file(IMAGE_RELEASE).read()
+        .then(content => {
+            if (content === null) {
+                show("image-build", "No image build is recorded: this card was not made by image/build.sh.");
+                return;
+            }
+            const release = {};
+            for (const line of content.split("\n")) {
+                const eq = line.indexOf("=");
+                if (eq > 0) release[line.slice(0, eq)] = line.slice(eq + 1);
+            }
+            show("image-build",
+                 `Image built from romi-wpilib-photonvision at ${release.ROMI_IMAGE_COMMIT} ` +
+                 `on ${release.ROMI_IMAGE_BUILD_DATE}, from ${release.ROMI_IMAGE_BASE}.`);
+        })
+        .catch(err => show("image-build", `Could not read ${IMAGE_RELEASE}: ${failure(err)}`));
 }
 
 function refreshServiceState() {
@@ -369,6 +390,7 @@ document.getElementById("write-firmware").addEventListener("click", writeFirmwar
 document.getElementById("save").addEventListener("click", saveRomiJson);
 document.getElementById("reload").addEventListener("click", loadRomiJson);
 
+loadImageBuild();
 loadRomiJson();
 refresh();
 setInterval(refresh, 5000);
