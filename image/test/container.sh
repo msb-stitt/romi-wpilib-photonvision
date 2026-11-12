@@ -5,7 +5,7 @@
 # deletes; the .img.xz is left alone.
 #
 #   container.sh up IMAGE.img.xz   decompress, mount, boot, wait for the services
-#   container.sh check             check the services, their ports, and userconfig off
+#   container.sh check             check the services, their ports, userconfig off, pi's shell
 #   container.sh host DIR          run the robot project in DIR in simulation against the container,
 #                                  and check PhotonVision's AprilTag pose reaches it
 #   container.sh down              stop the container and the simulation, unmount, delete the copy
@@ -104,6 +104,13 @@ check() {
         log "disabled after the first boot: userconfig.service"
     else
         log "NOT disabled after the first boot: userconfig.service"; failed=1
+    fi
+    local shell
+    shell="$(grep '^pi:' "$ROOT/etc/passwd" | cut -d: -f7)"
+    if [[ "$shell" == /bin/bash ]]; then
+        log "pi's shell: /bin/bash"
+    else
+        log "pi's shell is NOT /bin/bash: $shell"; failed=1
     fi
     wait_http "wpilibws-romi status" http://127.0.0.1:9001/status || failed=1
     wait_http "PhotonVision" http://127.0.0.1:5800/ || failed=1

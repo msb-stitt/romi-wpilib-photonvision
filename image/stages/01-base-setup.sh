@@ -22,6 +22,12 @@ for group in ${GROUPS_WANTED//,/ }; do
     getent group "$group" >/dev/null || run groupadd -r "$group"
 done
 run usermod -a -G "$GROUPS_WANTED" pi
+# The stock image's pi has /usr/sbin/nologin, which refuses SSH and the console after the password.
+if [[ "$(getent passwd pi | cut -d: -f7)" == /bin/bash ]]; then
+    log "Already set: shell /bin/bash for pi"
+else
+    run usermod -s /bin/bash pi
+fi
 if [[ "$DRY_RUN" == "1" ]]; then
     log "[DRY-RUN] set the password of pi to raspberry"
 else
