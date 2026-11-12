@@ -4,7 +4,7 @@
 
 Accepted 2026-11-11, by the Developer's agreement to the plan *One Pi image for the Romi and
 PhotonVision*, `.docs/2026-11-10-romi-photonvision-image.md` in `ftc-claude`. It takes the place
-of the planned *ADR-003: PhotonVision WiFi preservation*.
+of the planned *ADR-003: PhotonVision WiFi preservation*, and supersedes ADR-001 and ADR-002.
 
 ## Context
 
@@ -15,7 +15,8 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
 ## Decision
 
 - **Base:** Raspberry Pi OS Trixie Lite, 64-bit, the 2026-10-06 release, on the Romi's
-  Raspberry Pi 3 Model B Plus.
+  Raspberry Pi 3 Model B Plus. Raspberry Pi OS, not Ubuntu, as it carries the Pi's own boot
+  firmware, kernel and camera stack, and WPILibPi's and PhotonVision's Pi images are built on it.
 - **PhotonVision:** its own `install.sh`, unchanged, run with `-q` so it leaves networking to
   NetworkManager. WiFi stays on without a fork; nothing more is needed to preserve it.
 - **The Romi's own functions:** `wpilibws-romi` from npm, on Debian's Node, under systemd as
@@ -27,6 +28,10 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
   3300 by `halsim_ws_client`. PhotonVision's NetworkTables client, at team 0, asks
   `wpilibws-romi` on port 1742 for the server's address, and gets the host PC's.
 - **The dashboard:** Cockpit from Trixie's packages, with the Romi page first in its menu.
+- **The 32U4's firmware:** written from the Romi page by WPILibPi's `uploadRomi.py`, which opens
+  `/dev/ttyACM0`, the 32U4's USB port, at 1200 baud to reset it into its bootloader, then runs
+  `avrdude -patmega32u4 -cavr109 -b57600` with the `firmware.hex` npm installs with
+  `wpilibws-romi`.
 - **The card stays writable, and `romi.json` is in `/etc/romi/` on the ext4 root**, where
   WPILibPi kept it in the FAT boot partition. FAT has no journal, so a power-off during a save
   could damage the partition the Pi boots from; ext4's journal and Cockpit's write of a

@@ -1,7 +1,9 @@
 # ADR-001: Base OS Selection for Romi + PhotonVision Images
 
 ## Status
-Accepted for the **hardware** base OS (RPi OS Trixie, Ubuntu 24.04 Rockchip). The **QEMU development track is not validated**. See the 2026-11-10 correction below.
+**Superseded** on 2026-11-11 by [ADR-003](ADR-003-base-and-network.md). It was controlling
+from 2026-06-18, `bb49e90`, to then, accepted for the hardware base OS, RPi OS Trixie and
+Ubuntu 24.04 Rockchip, with its QEMU track not validated.
 
 ## Context
 We need to select a base OS for building bootable Romi images that run WPILib 2026 + PhotonVision 2026 on Raspberry Pi 4/5 and Orange Pi 5. The image builder will use a photon-image-modifier style script pipeline (modify existing OS image → output bootable image).

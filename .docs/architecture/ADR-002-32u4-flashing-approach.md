@@ -1,7 +1,8 @@
 # ADR-002: 32U4 Firmware Flashing Approach
 
 ## Status
-Accepted
+**Superseded** on 2026-11-11 by [ADR-003](ADR-003-base-and-network.md). It was controlling
+from 2026-06-18, `bb49e90`, to then, accepted; none of its Javalin design was built.
 
 ## Context
 The Romi 32U4 control board needs firmware updates via the web dashboard. The current WPILibPi uses a custom C++ `configServer` that calls `avrdude` directly. We need to decide on the approach for the new Javalin-based dashboard.

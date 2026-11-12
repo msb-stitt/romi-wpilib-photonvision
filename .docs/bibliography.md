@@ -101,8 +101,8 @@
 | `requirements.md` | Requirements |
 | `integration-plan.md` | 13-week implementation plan with task checklist; superseded |
 | `README.md` | Project overview |
-| `architecture/ADR-001-base-os-selection.md` | Base OS decision (RPi OS Trixie for RPi) |
-| `architecture/ADR-002-32u4-flashing-approach.md` | 32U4 flashing via avrdude |
+| `architecture/ADR-001-base-os-selection.md` | Base OS decision (RPi OS Trixie for RPi); superseded |
+| `architecture/ADR-002-32u4-flashing-approach.md` | 32U4 flashing via avrdude; superseded |
 | `architecture/ADR-003-base-and-network.md` | The base, the network and the versions used |
 | `provenance-and-comparison.md` | Where the image came from, its versions, and how it compares with WPILibPi's |
 | `parts/image-builder.md` | Image builder pipeline reference; superseded |
