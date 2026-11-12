@@ -1,0 +1,8 @@
+{
+    "name": "romi-image-wpilibws-romi",
+    "private": true,
+    "description": "wpilibws-romi and its dependencies, pinned by package-lock.json for the Romi image",
+    "dependencies": {
+        "@wpilib/wpilib-ws-robot-romi": "1.4.0"
+    }
+}

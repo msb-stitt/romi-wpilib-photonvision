@@ -7,7 +7,7 @@ User=pi
 Group=pi
 SupplementaryGroups=i2c
 WorkingDirectory=/home/pi
-ExecStart=/usr/bin/node /usr/local/bin/wpilibws-romi -c /boot/firmware/romi.json
+ExecStart=/usr/bin/node /opt/wpilibws-romi/node_modules/@wpilib/wpilib-ws-robot-romi/dist/index.js -c /boot/firmware/romi.json
 Restart=always
 RestartSec=2
 
