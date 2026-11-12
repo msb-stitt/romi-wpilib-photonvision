@@ -16,13 +16,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set the output directory
         run: echo "OUT_DIR=$RUNNER_TEMP/romi-image" >> "$GITHUB_ENV"
 
       - name: Build
-        run: sudo env DRY_RUN=0 OUT_DIR="$OUT_DIR" image/build.sh
+        run: |
+          sudo env DRY_RUN=0 OUT_DIR="$OUT_DIR" RUNNER_IMAGE="$ImageOS $ImageVersion" \
+            image/build.sh
 
       - name: Check the release file limit
         run: |
@@ -31,13 +33,14 @@ jobs:
           [[ $size -lt 2147483648 ]] || { echo "over GitHub's 2 GiB release file limit"; exit 1; }
           cat "$OUT_DIR/image-metadata.json"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         with:
           name: romi-image
           path: |
             ${{ env.OUT_DIR }}/romi-image.img.xz
             ${{ env.OUT_DIR }}/image-metadata.json
+            ${{ env.OUT_DIR }}/packages.txt
             ${{ env.OUT_DIR }}/build.log
           compression-level: 0
           retention-days: 7
@@ -48,4 +51,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes \
-            "$OUT_DIR/romi-image.img.xz" "$OUT_DIR/image-metadata.json"
+            "$OUT_DIR/romi-image.img.xz" "$OUT_DIR/image-metadata.json" "$OUT_DIR/packages.txt"
