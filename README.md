@@ -10,8 +10,9 @@ and the versions used.
 
 ## What the image does
 
-- **An access point, `WPILibPi`, with the Pi at `10.0.0.2`**, as WPILibPi's images had. The host
-  PC joins it.
+- **An access point, `WPILibPi-` and the last 8 hex digits of the Pi's serial number, with the
+  Pi at `10.0.0.2`**, as WPILibPi's images had. The host PC joins it. Until it is renamed, the Pi
+  speaks the name through its headphone jack.
 - **`wpilibws-romi`**, which robot code on the host PC reaches through WPILib's WebSocket
   simulation extension.
 - **PhotonVision**, on port 5800, which finds the simulation's NetworkTables by itself.

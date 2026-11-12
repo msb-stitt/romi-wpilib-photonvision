@@ -1,0 +1,9 @@
+[Unit]
+Description=Speak the Romi's access point name through the headphone jack
+After=romi-ssid.service sound.target
+
+[Service]
+ExecStart=/usr/local/sbin/romi-sayid
+
+[Install]
+WantedBy=multi-user.target

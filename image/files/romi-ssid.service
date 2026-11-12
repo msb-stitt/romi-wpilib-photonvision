@@ -1,0 +1,10 @@
+[Unit]
+Description=Name the Romi's access point from the Pi's serial number
+Before=NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/romi-ssid
+
+[Install]
+WantedBy=multi-user.target

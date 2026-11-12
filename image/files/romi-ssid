@@ -1,0 +1,39 @@
+#!/bin/bash
+# romi-ssid: at each boot, before NetworkManager starts, names the Romi's access point WPILibPi-
+# and the last 8 hex digits of the Pi's serial number while its keyfile's SSID is still exactly
+# WPILibPi, as WPILibPi's resize2fs_once did on its first boot; a name the Romi page has set is
+# left. It makes default-ssid.txt, the default name, and default-ssid.wav, the name spoken by
+# espeak, in the boot partition when they are missing, and changes neither after.
+set -euo pipefail
+
+KEYFILE=/etc/NetworkManager/system-connections/WPILibPi.nmconnection
+BOOT=/boot/firmware
+
+serial="$(awk '/^Serial/ {print $3}' /proc/cpuinfo)"
+if [[ ${#serial} -lt 8 ]]; then
+    echo "romi-ssid: no serial number in /proc/cpuinfo; nothing named"
+    exit 0
+fi
+id="${serial: -8}"
+name="WPILibPi-$id"
+
+if [[ -f "$KEYFILE" ]] && grep -qx 'ssid=WPILibPi' "$KEYFILE"; then
+    tmp="$(mktemp /etc/NetworkManager/romi-ssid.XXXXXX)"
+    sed "s/^ssid=WPILibPi\$/ssid=$name/" "$KEYFILE" > "$tmp"
+    chmod 600 "$tmp"
+    mv "$tmp" "$KEYFILE"
+    echo "romi-ssid: access point named $name"
+fi
+
+if [[ ! -f "$BOOT/default-ssid.txt" ]]; then
+    echo "$name" > "$BOOT/default-ssid.txt.tmp"
+    mv "$BOOT/default-ssid.txt.tmp" "$BOOT/default-ssid.txt"
+    echo "romi-ssid: wrote $BOOT/default-ssid.txt"
+fi
+if [[ ! -f "$BOOT/default-ssid.wav" ]]; then
+    espeak -s 140 -g 5 "WPILib Pi dash $(echo "$id" | sed 's/\(.\)/\1 /g')" --stdout \
+        > "$BOOT/default-ssid.wav.tmp"
+    mv "$BOOT/default-ssid.wav.tmp" "$BOOT/default-ssid.wav"
+    echo "romi-ssid: wrote $BOOT/default-ssid.wav"
+fi
+sync

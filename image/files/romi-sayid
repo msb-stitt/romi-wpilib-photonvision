@@ -1,0 +1,22 @@
+#!/bin/bash
+# romi-sayid: while the access point still has its default name, plays it through the headphone
+# jack, as WPILibPi's romi-sayid.sh did: default-ssid.wav 10 times, then its ROT13 line spoken by
+# espeak, and again. Exits at once when the page has renamed the access point.
+set -euo pipefail
+
+KEYFILE=/etc/NetworkManager/system-connections/WPILibPi.nmconnection
+BOOT=/boot/firmware
+DEVICE=plughw:CARD=Headphones
+
+[[ -f "$BOOT/default-ssid.txt" && -f "$BOOT/default-ssid.wav" && -f "$KEYFILE" ]] || exit 0
+[[ "$(sed -n 's/^ssid=//p' "$KEYFILE")" == "$(cat "$BOOT/default-ssid.txt")" ]] || exit 0
+
+MESSAGE="Jr ner Ebzv.  Lbh jvyy or nffvzvyngrq."
+
+while true; do
+    for i in {1..10}; do
+        aplay -q -D "$DEVICE" "$BOOT/default-ssid.wav"
+    done
+    echo "$MESSAGE" | tr 'A-Za-z' 'N-ZA-Mn-za-m' | espeak -s 140 -g 5 --stdin --stdout |
+        aplay -q -D "$DEVICE"
+done
