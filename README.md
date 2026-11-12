@@ -16,15 +16,16 @@ and the versions used.
   simulation extension.
 - **PhotonVision**, on port 5800, which finds the simulation's NetworkTables by itself.
 - **Cockpit**, on port 9090, with a Romi page first in its menu: the service's status and log,
-  the external IO, the gyro calibration, the 32U4's firmware, the WiFi and Ethernet settings, and
-  `romi.json`.
+  the external IO, the gyro calibration, the 32U4's firmware, the WiFi and Ethernet settings,
+  `romi.json`, and which build made the card.
 - **One account, `pi`, password `raspberry`.**
 
 ## Building it
 
 `image/build.sh` makes the image from Raspberry Pi OS Trixie Lite by running the scripts in
 `image/stages/` inside it. It runs as root on Linux, and prints its commands without running them
-unless `DRY_RUN=0` is set. A stage can also be run on a running Pi.
+unless `DRY_RUN=0` is set. A stage can also be run on a running Pi. Each build records its commit,
+the base image and its Debian packages, next to the image and on the card.
 
 The workflow in `.github/workflows/image.yml` builds the image on GitHub's arm64 runners; a tag
 starting with `v` publishes it as a release.

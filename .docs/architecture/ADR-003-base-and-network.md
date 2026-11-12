@@ -38,6 +38,7 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
 | PhotonVision | v2026.3.4, by `photon-image-modifier` v2027.2.3's `install.sh` |
 | Java | OpenJDK 25.0.5, `openjdk-25-jre-headless` 25.0.5+8-1~deb13u1 |
 | `wpilibws-romi` | `@wpilib/wpilib-ws-robot-romi` 1.4.0, its 32U4 firmware built from v1.4.0 |
+| `i2c-bus` | 5.2.3, with the rest of `wpilibws-romi`'s dependencies pinned by `image/files/wpilibws-romi/package-lock.json` |
 | Node | 20.19.2, npm 9.2.0 |
 | NetworkManager | 1.52.1-1+rpt4 |
 | Cockpit | `cockpit-ws` 337-1+deb13u2 |
@@ -52,3 +53,5 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
   v2027.2.3's installs Java 25, and PhotonVision v2026.3.4 runs on it.
 - The access point's passphrase is what keeps others off the Pi, as the account is known.
 - The Romi page changes NetworkManager's keyfiles, and the build keeps a keyfile already there.
+- The Debian packages are not pinned: Debian's mirrors keep only the current version. Each build
+  records them in `packages.txt` and on the card in `/etc/romi-image-packages.txt`.
