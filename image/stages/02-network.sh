@@ -1,7 +1,7 @@
 #!/bin/bash
 # 02-network.sh: the WPILibPi access point from NetworkManager at 10.0.0.2, with its own DHCP,
-# and the WiFi country. Ethernet keeps NetworkManager's default DHCP client. A keyfile already
-# there is kept, as the Romi page changes it.
+# and the WiFi country. Ethernet keeps NetworkManager's default DHCP client, with a link-local
+# address while DHCP gives none. A keyfile already there is kept, as the Romi page changes it.
 set -euo pipefail
 
 source "$(dirname "$0")/../lib/common.sh"
@@ -18,6 +18,8 @@ if [[ -f "$KEYFILE" ]]; then
 else
     install_file 600 "$IMAGE_DIR/files/WPILibPi.nmconnection" "$KEYFILE"
 fi
+
+install_file 644 "$IMAGE_DIR/files/romi-ethernet.conf" /etc/NetworkManager/conf.d/romi-ethernet.conf
 
 if grep -q "cfg80211.ieee80211_regdom=" "$CMDLINE"; then
     log "Already set in $CMDLINE: a WiFi country"

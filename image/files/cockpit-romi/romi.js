@@ -236,6 +236,10 @@ const WIFI_FIELDS = ["802-11-wireless.mode", "802-11-wireless.ssid", "802-11-wir
                      "802-11-wireless-security.psk", "ipv4.method", "ipv4.addresses",
                      "ipv4.gateway", "ipv4.dns"];
 const ETH_FIELDS = ["ipv4.method", "ipv4.addresses", "ipv4.gateway", "ipv4.dns"];
+// "DHCP with static fallback", as WPILibPi's dhcpcd did it: the Ethernet profile asks by DHCP for
+// 30 s, dhcpcd's timeout, once, and then this second profile, at a lower priority, takes over.
+const ETH_FALLBACK = "Ethernet static fallback";
+const ETH_DHCP_TIMEOUT = "30";
 
 function value(id) {
     return document.getElementById(id).value.trim();
@@ -259,12 +263,18 @@ function nmApply(profile, settings) {
                                   { superuser: "require", err: "message" }));
 }
 
-function ethProfile() {
-    return cockpit.spawn(["nmcli", "-t", "-g", "UUID,TYPE", "connection", "show"], { err: "message" })
+// The Ethernet profile's UUID, and the static fallback's, or null when there is none.
+function ethProfiles() {
+    return cockpit.spawn(["nmcli", "-t", "-g", "UUID,TYPE,NAME", "connection", "show"], { err: "message" })
         .then(out => {
-            const line = out.split("\n").find(l => l.endsWith(":802-3-ethernet"));
-            if (!line) throw new Error("no Ethernet profile");
-            return line.split(":")[0];
+            const profiles = out.split("\n").filter(l => l).map(l => {
+                const [uuid, type, ...name] = l.split(":");
+                return { uuid, type, name: name.join(":").replace(/\\/g, "") };
+            }).filter(p => p.type === "802-3-ethernet");
+            const fallback = profiles.find(p => p.name === ETH_FALLBACK);
+            const main = profiles.find(p => p.name !== ETH_FALLBACK);
+            if (!main) throw new Error("no Ethernet profile");
+            return { main: main.uuid, fallback: fallback ? fallback.uuid : null };
         });
 }
 
@@ -281,7 +291,7 @@ function showNetworkRows() {
         e.hidden = !client || value("wifi-method") !== "manual";
     });
     document.getElementById("eth").querySelectorAll(".static-only").forEach(e => {
-        e.hidden = value("eth-method") !== "manual";
+        e.hidden = value("eth-method") === "auto";
     });
 }
 
@@ -300,10 +310,10 @@ function loadNetwork() {
             showNetworkRows();
         })
         .catch(err => show("wifi-result", `Could not read the WiFi settings: ${failure(err)}`));
-    ethProfile()
-        .then(profile => nmGet(profile, ETH_FIELDS))
-        .then(([method, address, gateway, dns]) => {
-            setValue("eth-method", method === "manual" ? "manual" : "auto");
+    ethProfiles()
+        .then(({ main, fallback }) => Promise.all([nmGet(fallback || main, ETH_FIELDS), fallback]))
+        .then(([[method, address, gateway, dns], fallback]) => {
+            setValue("eth-method", fallback ? "fallback" : method === "manual" ? "manual" : "auto");
             setValue("eth-address", address);
             setValue("eth-gateway", gateway);
             setValue("eth-dns", dns);
@@ -314,7 +324,7 @@ function loadNetwork() {
 
 // The ipv4 settings for DHCP or a static address, from the inputs named by prefix.
 function ipv4Settings(prefix) {
-    if (value(`${prefix}-method`) !== "manual") {
+    if (value(`${prefix}-method`) === "auto") {
         return ["ipv4.method", "auto", "ipv4.addresses", "", "ipv4.gateway", "", "ipv4.dns", ""];
     }
     if (!/^\d+\.\d+\.\d+\.\d+\/\d+$/.test(value(`${prefix}-address`))) {
@@ -354,18 +364,51 @@ function saveWifi() {
         .finally(loadNetwork);
 }
 
+function nmcli(args) {
+    return cockpit.spawn(["nmcli", ...args], { superuser: "require", err: "message" });
+}
+
+// DHCP or Static on the Ethernet profile alone, with the static fallback removed.
+function saveEthSingle(profiles, ipv4) {
+    const settings = [...ipv4, "ipv4.link-local", "default", "ipv4.dhcp-timeout", "0",
+                      "connection.autoconnect-priority", "0", "connection.autoconnect-retries", "-1"];
+    return (profiles.fallback ? nmcli(["connection", "delete", profiles.fallback]) : Promise.resolve())
+        .then(() => nmApply(profiles.main, settings))
+        .then(() => "Saved and applied");
+}
+
+// DHCP with static fallback: the Ethernet profile by DHCP, tried first and once, then the
+// fallback's static address. Applied now the same way: the fallback comes up if DHCP gives none.
+function saveEthFallback(profiles, ipv4) {
+    const fallback = [...ipv4, "connection.autoconnect", "yes", "connection.autoconnect-priority", "0"];
+    const dhcp = ["ipv4.method", "auto", "ipv4.addresses", "", "ipv4.gateway", "", "ipv4.dns", "",
+                  "ipv4.link-local", "disabled", "ipv4.dhcp-timeout", ETH_DHCP_TIMEOUT,
+                  "connection.autoconnect-priority", "10", "connection.autoconnect-retries", "1"];
+    return (profiles.fallback
+        ? nmcli(["connection", "modify", profiles.fallback, ...fallback])
+        : nmcli(["connection", "add", "type", "ethernet", "ifname", "eth0",
+                 "con-name", ETH_FALLBACK, ...fallback]))
+        .then(() => nmcli(["connection", "modify", profiles.main, ...dhcp]))
+        .then(() => nmcli(["connection", "up", profiles.main]).then(
+            () => "Saved and applied; DHCP gave an address",
+            () => nmcli(["connection", "up", ETH_FALLBACK]).then(() =>
+                `Saved and applied; DHCP gave no address in ${ETH_DHCP_TIMEOUT} s, so the static address is in use`)));
+}
+
 function saveEth() {
-    let settings;
+    const method = value("eth-method");
+    let ipv4;
     try {
-        settings = ipv4Settings("eth");
+        ipv4 = ipv4Settings("eth");
     } catch (err) {
         show("eth-result", `Not saved: ${err.message}`);
         return;
     }
-    show("eth-result", "Applying");
-    ethProfile()
-        .then(profile => nmApply(profile, settings))
-        .then(() => show("eth-result", "Saved and applied"))
+    show("eth-result", method === "fallback" ? `Applying; DHCP is given ${ETH_DHCP_TIMEOUT} s` : "Applying");
+    ethProfiles()
+        .then(profiles => method === "fallback" ? saveEthFallback(profiles, ipv4)
+                                                : saveEthSingle(profiles, ipv4))
+        .then(message => show("eth-result", message))
         .catch(err => show("eth-result", `Not applied: ${failure(err)}`))
         .finally(loadNetwork);
 }

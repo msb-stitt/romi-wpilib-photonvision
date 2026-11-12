@@ -22,8 +22,17 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
 - **The Romi's own functions:** `wpilibws-romi` from npm, on Debian's Node, under systemd as
   `pi`, with I2C on.
 - **The network:** NetworkManager makes the access point `WPILibPi`, passphrase `WPILib2021!`,
-  at `10.0.0.2/24`, with `ipv4.method shared` giving addresses to what joins it. Ethernet takes
-  an address by DHCP.
+  at `10.0.0.2/24`, with `ipv4.method shared` giving addresses to what joins it. WiFi is the
+  access point or a client, one profile switched between the two, not both at once. Ethernet
+  takes an address by DHCP and, with no answer, a `169.254` address, as WPILibPi's dhcpcd did;
+  the Romi page also sets a static address, or DHCP with a static fallback, the last by a DHCP
+  profile that gives up after 30 s and a static profile after it.
+- **Each Romi's access point is named `WPILibPi-` and its serial number's last 8 hex digits**,
+  as WPILibPi's first boot named it. `romi-ssid.service`, before NetworkManager at each boot,
+  renames a keyfile still named exactly `WPILibPi`, and makes `/boot/firmware/default-ssid.txt`
+  and `default-ssid.wav` by `espeak` when they are missing. `romi-sayid.service` plays the name,
+  and WPILibPi's ROT13 line, through the headphone jack while the access point keeps that name;
+  a renamed Romi is silent.
 - **The host PC joins the access point.** Its robot program connects to `wpilibws-romi` on port
   3300 by `halsim_ws_client`. PhotonVision's NetworkTables client, at team 0, asks
   `wpilibws-romi` on port 1742 for the server's address, and gets the host PC's.
@@ -52,6 +61,7 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
 | NetworkManager | 1.52.1-1+rpt4 |
 | Cockpit | `cockpit-ws` 337-1+deb13u2 |
 | avrdude | 7.1+dfsg-3+b3 |
+| espeak | 1.48.15+dfsg-3+b2 |
 | Host PC robot code | `romiPyKitTiny` with `robotpy` 2026.2.2 |
 
 ## Consequences
