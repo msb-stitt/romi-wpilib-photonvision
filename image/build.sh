@@ -3,7 +3,8 @@
 # running each stage in the image's root as a chroot. Runs as root on Linux; a host that is not
 # arm64 needs qemu-user-static's binfmt for aarch64. With DRY_RUN=1, the default, it prints each
 # command and runs none. The result is $OUT_DIR/romi-image-DESCRIBE.img.xz with
-# image-metadata.json and packages.txt, and SOURCES.md, sources.py's links to the upstream source
+# image-metadata.json, packages.txt, files.txt, manifest.py's list of the image's files for
+# diff.py, and SOURCES.md, sources.py's links to the upstream source
 # of what it holds; the card holds the same record in /etc/romi-image-release and
 # /etc/romi-image-packages.txt. DESCRIBE, in the file name and both records, is
 # `git describe --tags --always --dirty`: the tag, or the tag with the commits since it, or the
@@ -148,6 +149,23 @@ else
     log "Root shrunk to $((block_count * block_size)) bytes; $IMG is $(stat -c %s "$IMG") bytes"
 fi
 loop=""
+
+# files.txt, the finished image's manifest, read with its partitions mounted read-only as
+# record.sh reads an image, so diff.py compares the two alike.
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "[DRY-RUN] write $OUT_DIR/files.txt"
+else
+    loop="$(losetup -P -r -f --show "$IMG")"
+    mount -o ro "${loop}p2" "$ROOT"
+    mounts=("$ROOT")
+    mount -o ro "${loop}p1" "$ROOT$BOOT_MOUNT"
+    mounts+=("$ROOT$BOOT_MOUNT")
+    python3 "$IMAGE_DIR/manifest.py" "$ROOT" > "$OUT_DIR/files.txt"
+    cleanup
+    mounts=()
+    loop=""
+    log "Wrote $OUT_DIR/files.txt, $(wc -l < "$OUT_DIR/files.txt") entries"
+fi
 
 run bash -c "xz -T0 -c '$IMG' > '$IMG.xz'"
 if [[ "$DRY_RUN" == "1" ]]; then

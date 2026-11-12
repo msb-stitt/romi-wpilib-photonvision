@@ -14,6 +14,7 @@ ROMI_VERSION="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))
 print(d["packages"]["node_modules/@wpilib/wpilib-ws-robot-romi"]["version"])' \
     "$FILES/wpilibws-romi/package-lock.json")"
 I2C_NODE="$ROMI_DIR/node_modules/i2c-bus/build/Release/i2c.node"
+NPM_CACHE=/tmp/romi-npm-cache
 
 log "Romi core: wpilibws-romi ${ROMI_VERSION}"
 
@@ -21,6 +22,8 @@ install_packages nodejs npm node-gyp libnode-dev build-essential i2c-tools avrdu
 
 ensure_line "$BOOT_MOUNT/config.txt" "dtparam=i2c_arm=on"
 ensure_line /etc/modules-load.d/i2c.conf "i2c-dev"
+
+export npm_config_cache="$NPM_CACHE"
 
 if [[ -d /usr/local/lib/node_modules/@wpilib/wpilib-ws-robot-romi ]]; then
     log "Removing the unpinned global install of wpilibws-romi"
@@ -35,6 +38,13 @@ else
     install_file 644 "$FILES/wpilibws-romi/package-lock.json" "$ROMI_DIR/package-lock.json"
     run npm ci --prefix "$ROMI_DIR" --omit=dev --no-audit --no-fund
 fi
+# npm's cache and logs are not needed once the lockfile's tree is installed, so they go to a
+# folder removed after it, and none is left in root's home as earlier builds left it.
+for dir in "$NPM_CACHE" /root/.npm; do
+    if [[ -d "$dir" ]]; then
+        run rm -rf "${dir:?}"
+    fi
+done
 if [[ "$DRY_RUN" != "1" ]]; then
     [[ -e "$I2C_NODE" ]] || die "i2c-bus did not build; wpilibws-romi would fall back to its mock I2C"
 fi

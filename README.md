@@ -31,8 +31,11 @@ the image, links to the upstream source of the programs it holds.
 
 The workflow in `.github/workflows/image.yml` builds the image on GitHub's arm64 runners and boots
 its root as a container, with `image/test/container.sh`, to check its services and drive it from
-`romiPyKitTiny` in simulation; a tag starting with `v` publishes an image that passed as a
-release. `container.sh` runs the same way on an arm64 Linux machine.
+`romiPyKitTiny` in simulation; a tag starting with `v` publishes an image that passed. A release
+candidate's tag, such as `v2026.0.0-rc-3`, builds and publishes a pre-release. A release's tag,
+such as `v2026.0.0`, on the same commit as a tested candidate, publishes that candidate's image
+relabelled by `image/relabel.sh`, without building again. `image/diff.py` lists what differs
+between two images. `container.sh` runs the same way on an arm64 Linux machine.
 
 ## Documentation
 

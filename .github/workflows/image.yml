@@ -1,6 +1,9 @@
 # image.yml: builds the Romi image with image/build.sh on an arm64 runner, keeps it as a workflow
 # artifact, and boots its root as a container with image/test/container.sh, with romiPyKitTiny in
-# simulation on the runner. A tag starting with v publishes an image that passed as a release.
+# simulation on the runner. A tag starting with v and holding -rc publishes an image that passed as
+# a release candidate; a tag without -rc publishes the newest candidate on its commit, relabelled by
+# image/relabel.sh, as the release. A branch run ends in its first job when a v tag points at its
+# commit, as that tag's run builds it.
 name: Romi image
 
 on:
@@ -11,7 +14,38 @@ on:
   workflow_dispatch:
 
 jobs:
+  gate:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      candidate: ${{ steps.mode.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # the tags
+
+      - name: Build, relabel or end
+        id: mode
+        run: |
+          candidate=""
+          if [[ "$GITHUB_REF" == refs/tags/* && "$GITHUB_REF_NAME" != *-rc* ]]; then
+            mode=relabel
+            candidate="$(git tag --points-at HEAD --sort=-v:refname 'v*-rc*' | head -n 1)"
+            [[ -n "$candidate" ]] || { echo "::error::no release candidate's tag on $GITHUB_SHA"; exit 1; }
+          elif [[ "$GITHUB_REF" != refs/tags/* && -n "$(git tag --points-at HEAD 'v*')" ]]; then
+            mode=end
+          else
+            mode=build
+          fi
+          echo "$GITHUB_REF at $GITHUB_SHA: $mode${candidate:+ $candidate}; tags here: $(git tag --points-at HEAD | xargs)"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "candidate=$candidate" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: gate
+    if: ${{ needs.gate.outputs.mode == 'build' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 120
     permissions:
@@ -44,13 +78,59 @@ jobs:
             ${{ env.OUT_DIR }}/romi-image-*.img.xz
             ${{ env.OUT_DIR }}/image-metadata.json
             ${{ env.OUT_DIR }}/packages.txt
+            ${{ env.OUT_DIR }}/files.txt
             ${{ env.OUT_DIR }}/SOURCES.md
             ${{ env.OUT_DIR }}/build.log
           compression-level: 0
           retention-days: 7
 
+  relabel:
+    needs: gate
+    if: ${{ needs.gate.outputs.mode == 'relabel' }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      CANDIDATE: ${{ needs.gate.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Get the candidate's release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$CANDIDATE" --repo "$GITHUB_REPOSITORY" --dir "$RUNNER_TEMP/candidate"
+          ls -l "$RUNNER_TEMP/candidate"
+
+      - name: Relabel it
+        run: sudo image/relabel.sh "$RUNNER_TEMP/candidate" "$GITHUB_REF_NAME" "$RUNNER_TEMP/romi-image"
+
+      - name: Check only the label differs
+        run: |
+          old="$RUNNER_TEMP/candidate"
+          if [[ ! -f "$old/files.txt" ]]; then
+            sudo image/record.sh "$old"/romi-image-*.img.xz "$RUNNER_TEMP/candidate-record"
+            old="$RUNNER_TEMP/candidate-record"
+          fi
+          python3 image/diff.py --label-only "$old" "$RUNNER_TEMP/romi-image"
+          cat "$RUNNER_TEMP/romi-image/image-metadata.json"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: romi-image
+          path: |
+            ${{ runner.temp }}/romi-image/romi-image-*.img.xz
+            ${{ runner.temp }}/romi-image/image-metadata.json
+            ${{ runner.temp }}/romi-image/packages.txt
+            ${{ runner.temp }}/romi-image/files.txt
+            ${{ runner.temp }}/romi-image/SOURCES.md
+          compression-level: 0
+          retention-days: 7
+
   container:
-    needs: build
+    needs: [gate, build, relabel]
+    if: ${{ always() && (needs.build.result == 'success' || needs.relabel.result == 'success') }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 60
     env:
@@ -100,8 +180,8 @@ jobs:
         run: sudo image/test/container.sh down
 
   release:
-    needs: [build, container]
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    needs: [gate, container]
+    if: ${{ always() && needs.container.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: write
@@ -114,11 +194,17 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ needs.gate.outputs.candidate }}
         run: |
           # A release candidate, such as v2026.0.0-rc-2, is a pre-release, so GitHub does not call it Latest.
           prerelease=false
           if [[ "$GITHUB_REF_NAME" == *-rc* ]]; then prerelease=true; fi
+          notes=""
+          if [[ -n "$CANDIDATE" ]]; then
+            notes="The image of $CANDIDATE, relabelled as $GITHUB_REF_NAME; only /etc/romi-image-release differs."
+          fi
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" --generate-notes --prerelease="$prerelease" \
+            --title "$GITHUB_REF_NAME" --generate-notes --notes "$notes" \
+            --prerelease="$prerelease" --latest="$([[ $prerelease == true ]] && echo false || echo true)" \
             romi-image/romi-image-*.img.xz romi-image/image-metadata.json romi-image/packages.txt \
-            romi-image/SOURCES.md
+            romi-image/files.txt romi-image/SOURCES.md
