@@ -74,6 +74,8 @@ else
     log "Already gone: /etc/ssh/sshd_config.d/rename_user.conf"
 fi
 run systemctl enable getty@tty1.service
+# The first boot enables each unit by its preset, which would turn userconfig on again.
+install_file 644 "$IMAGE_DIR/files/20-romi.preset" /etc/systemd/system-preset/20-romi.preset
 
 ensure_line "$BOOT_MOUNT/config.txt" "enable_uart=1"
 ensure_line "$BOOT_MOUNT/config.txt" "dtoverlay=disable-bt"

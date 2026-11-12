@@ -5,7 +5,7 @@
 # deletes; the .img.xz is left alone.
 #
 #   container.sh up IMAGE.img.xz   decompress, mount, boot, wait for the services
-#   container.sh check             check the services' ports
+#   container.sh check             check the services, their ports, and userconfig off
 #   container.sh host DIR          run the robot project in DIR in simulation against the container,
 #                                  and check PhotonVision's AprilTag pose reaches it
 #   container.sh down              stop the container and the simulation, unmount, delete the copy
@@ -97,6 +97,14 @@ check() {
             log "NOT active: $unit"; failed=1
         fi
     done
+    # The first boot's presets would turn Raspberry Pi's rename of pi back on.
+    local rename
+    rename="$(systemctl -M "$MACHINE" is-enabled userconfig.service 2>/dev/null || true)"
+    if [[ "$rename" == disabled ]]; then
+        log "disabled after the first boot: userconfig.service"
+    else
+        log "NOT disabled after the first boot: userconfig.service"; failed=1
+    fi
     wait_http "wpilibws-romi status" http://127.0.0.1:9001/status || failed=1
     wait_http "PhotonVision" http://127.0.0.1:5800/ || failed=1
     wait_http "Cockpit" https://127.0.0.1:9090/ || failed=1
