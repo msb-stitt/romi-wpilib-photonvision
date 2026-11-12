@@ -5,7 +5,7 @@
 # deletes; the .img.xz is left alone.
 #
 #   container.sh up IMAGE.img.xz   decompress, mount, boot, wait for the services
-#   container.sh check             check the services, their ports, userconfig off, pi's shell
+#   container.sh check             check the services, their ports, userconfig off, pi's shell, WiFi
 #   container.sh host DIR          run the robot project in DIR in simulation against the container,
 #                                  and check PhotonVision's AprilTag pose reaches it
 #   container.sh down              stop the container and the simulation, unmount, delete the copy
@@ -111,6 +111,14 @@ check() {
         log "pi's shell: /bin/bash"
     else
         log "pi's shell is NOT /bin/bash: $shell"; failed=1
+    fi
+    local blocked nm_state="$ROOT/var/lib/NetworkManager/NetworkManager.state"
+    blocked="$(grep -l -v '^0$' "$ROOT"/var/lib/systemd/rfkill/*:wlan 2>/dev/null || true)"
+    grep -q '^WirelessEnabled=true' "$nm_state" || blocked="${blocked:+$blocked }$nm_state"
+    if [[ -z "$blocked" ]]; then
+        log "WiFi not blocked by rfkill's saved state or NetworkManager's"
+    else
+        log "WiFi blocked by $blocked"; failed=1
     fi
     wait_http "wpilibws-romi status" http://127.0.0.1:9001/status || failed=1
     wait_http "PhotonVision" http://127.0.0.1:5800/ || failed=1
