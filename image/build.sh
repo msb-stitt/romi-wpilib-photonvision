@@ -2,11 +2,12 @@
 # build.sh: the platform profile's Raspberry Pi OS Trixie Lite image made into the Romi's, by
 # running each stage in the image's root as a chroot. Runs as root on Linux; a host that is not
 # arm64 needs qemu-user-static's binfmt for aarch64. With DRY_RUN=1, the default, it prints each
-# command and runs none. The result is $OUT_DIR/romi-image.img.xz with image-metadata.json and
-# packages.txt, and SOURCES.md, sources.py's links to the upstream source of what it holds; the
-# card holds the same record in /etc/romi-image-release and /etc/romi-image-packages.txt.
-# Both name the build by `git describe --tags --always --dirty`: the tag, or the tag with the
-# commits since it, or the commit alone when no tag is reachable. RUNNER_IMAGE names the machine
+# command and runs none. The result is $OUT_DIR/romi-image-DESCRIBE.img.xz with
+# image-metadata.json and packages.txt, and SOURCES.md, sources.py's links to the upstream source
+# of what it holds; the card holds the same record in /etc/romi-image-release and
+# /etc/romi-image-packages.txt. DESCRIBE, in the file name and both records, is
+# `git describe --tags --always --dirty`: the tag, or the tag with the commits since it, or the
+# commit alone when no tag is reachable. RUNNER_IMAGE names the machine
 # image the build ran on, if any.
 set -euo pipefail
 
@@ -23,11 +24,11 @@ source "$(dirname "$0")/lib/common.sh"
 load_platform_profile
 
 BASE="$OUT_DIR/$(basename "$BASE_IMG_URL")"
-IMG="$OUT_DIR/romi-image.img"
 ROOT="$OUT_DIR/root"
 STAGE_DIR=/tmp/romi-image
 COMMIT="$(git -C "$IMAGE_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
 DESCRIBE="$(git -C "$IMAGE_DIR" describe --tags --always --dirty 2>/dev/null || echo unknown)"
+IMG="$OUT_DIR/romi-image-$DESCRIBE.img"
 BUILD_DATE="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 RUNNER_IMAGE="${RUNNER_IMAGE:-not recorded}"
 loop=""
@@ -127,6 +128,7 @@ else
 {
     "buildDate": "$BUILD_DATE",
     "describe": "$DESCRIBE",
+    "image": "$(basename "$IMG.xz")",
     "commit": "$COMMIT",
     "runnerImage": "$RUNNER_IMAGE",
     "baseImage": "$(basename "$BASE_IMG_URL")",

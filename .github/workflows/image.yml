@@ -31,8 +31,9 @@ jobs:
 
       - name: Check the release file limit
         run: |
-          size=$(stat -c %s "$OUT_DIR/romi-image.img.xz")
-          echo "romi-image.img.xz: $size bytes"
+          image=$(ls "$OUT_DIR"/romi-image-*.img.xz)
+          size=$(stat -c %s "$image")
+          echo "$(basename "$image"): $size bytes"
           [[ $size -lt 2147483648 ]] || { echo "over GitHub's 2 GiB release file limit"; exit 1; }
           cat "$OUT_DIR/image-metadata.json"
 
@@ -40,7 +41,7 @@ jobs:
         with:
           name: romi-image
           path: |
-            ${{ env.OUT_DIR }}/romi-image.img.xz
+            ${{ env.OUT_DIR }}/romi-image-*.img.xz
             ${{ env.OUT_DIR }}/image-metadata.json
             ${{ env.OUT_DIR }}/packages.txt
             ${{ env.OUT_DIR }}/SOURCES.md
@@ -79,7 +80,7 @@ jobs:
         run: sudo apt-get install -y --no-install-recommends systemd-container
 
       - name: Boot the image's root as a container
-        run: sudo image/test/container.sh up "$RUNNER_TEMP/romi-image/romi-image.img.xz"
+        run: sudo image/test/container.sh up "$RUNNER_TEMP"/romi-image/romi-image-*.img.xz
 
       - name: Check its services
         run: sudo image/test/container.sh check
@@ -116,5 +117,5 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
             --title "$GITHUB_REF_NAME" --generate-notes \
-            romi-image/romi-image.img.xz romi-image/image-metadata.json romi-image/packages.txt \
+            romi-image/romi-image-*.img.xz romi-image/image-metadata.json romi-image/packages.txt \
             romi-image/SOURCES.md
