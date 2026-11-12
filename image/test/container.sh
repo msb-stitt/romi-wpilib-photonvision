@@ -5,7 +5,7 @@
 # deletes; the .img.xz is left alone.
 #
 #   container.sh up IMAGE.img.xz   decompress, mount, boot, wait for the services
-#   container.sh check             check the services, their ports, userconfig off, pi's shell, WiFi, Ethernet
+#   container.sh check             check the services, their ports, userconfig and wait-online off, pi's shell, WiFi, Ethernet
 #   container.sh host DIR          run the robot project in DIR in simulation against the container,
 #                                  and check PhotonVision's AprilTag pose reaches it
 #   container.sh down              stop the container and the simulation, unmount, delete the copy
@@ -141,6 +141,14 @@ check() {
         log "Ethernet's profile retries DHCP forever"
     else
         log "Ethernet's profile does NOT retry DHCP forever: $eth"; failed=1
+    fi
+    # The container masks NetworkManager-wait-online, so the preset is what is checked.
+    if grep -qx 'disable NetworkManager-wait-online.service' \
+        "$ROOT/etc/systemd/system-preset/20-romi.preset" 2>/dev/null &&
+        [[ ! -e "$ROOT/etc/systemd/system/network-online.target.wants/NetworkManager-wait-online.service" ]]; then
+        log "off, by its preset: NetworkManager-wait-online.service"
+    else
+        log "NOT off by its preset: NetworkManager-wait-online.service"; failed=1
     fi
     local unknown
     unknown="$(chroot "$ROOT" NetworkManager --print-config 2>&1 | grep 'unknown key' || true)"

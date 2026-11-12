@@ -35,6 +35,15 @@ fi
 
 install_file 644 "$IMAGE_DIR/files/romi-ethernet.conf" /etc/NetworkManager/conf.d/romi-ethernet.conf
 
+# NetworkManager-wait-online fails each boot that Ethernet has no DHCP server, as Ethernet is
+# still asking after its 60 s, and Cockpit's Services page marks it. Nothing the Romi runs waits
+# for network-online.target. 20-romi.preset keeps it off at the first boot.
+if systemctl --quiet is-enabled NetworkManager-wait-online.service 2>/dev/null; then
+    run systemctl disable NetworkManager-wait-online.service
+else
+    log "Already off: NetworkManager-wait-online.service"
+fi
+
 if grep -q "cfg80211.ieee80211_regdom=" "$CMDLINE"; then
     log "Already set in $CMDLINE: a WiFi country"
 elif [[ "$DRY_RUN" == "1" ]]; then

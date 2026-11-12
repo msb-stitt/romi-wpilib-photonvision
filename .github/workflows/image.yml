@@ -115,7 +115,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A release candidate, such as v2026.0.0-rc-2, is a pre-release, so GitHub does not call it Latest.
+          prerelease=false
+          if [[ "$GITHUB_REF_NAME" == *-rc* ]]; then prerelease=true; fi
           gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
-            --title "$GITHUB_REF_NAME" --generate-notes \
+            --title "$GITHUB_REF_NAME" --generate-notes --prerelease="$prerelease" \
             romi-image/romi-image-*.img.xz romi-image/image-metadata.json romi-image/packages.txt \
             romi-image/SOURCES.md

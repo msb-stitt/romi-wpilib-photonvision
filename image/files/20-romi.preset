@@ -1,3 +1,5 @@
 # systemd enables each unit by its preset at the first boot; this keeps Raspberry Pi's
-# first-boot rename of pi off, as 01-base-setup.sh turned it off.
+# first-boot rename of pi off, as 01-base-setup.sh turned it off, and NetworkManager-wait-online
+# off, as 02-network.sh turned it off.
 disable userconfig.service
+disable NetworkManager-wait-online.service
