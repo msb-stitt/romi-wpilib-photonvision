@@ -1,6 +1,8 @@
 #!/bin/bash
 # 01-base-setup.sh: the one account, pi/raspberry with sudo, SSH, the host name, the serial
-# console on the PL011 UART, and cloud-init off, as its first boot would lock pi's password.
+# console on the PL011 UART, cloud-init off, as its first boot would lock pi's password, and
+# Raspberry Pi's first-boot rename of the user off, as WPILibPi's DISABLE_FIRST_BOOT_USER_RENAME
+# did.
 set -euo pipefail
 
 source "$(dirname "$0")/../lib/common.sh"
@@ -58,6 +60,20 @@ if [[ -f /etc/cloud/cloud-init.disabled ]]; then
 else
     run touch /etc/cloud/cloud-init.disabled
 fi
+
+# What Raspberry Pi's cancel-rename does to keep the first user: userconfig would ask for a new
+# name on tty8 at first boot, and rename_user.conf gives SSH a banner asking for one.
+if systemctl --quiet is-enabled userconfig.service 2>/dev/null; then
+    run systemctl disable userconfig.service
+else
+    log "Already off: userconfig.service"
+fi
+if [[ -f /etc/ssh/sshd_config.d/rename_user.conf ]]; then
+    run rm /etc/ssh/sshd_config.d/rename_user.conf
+else
+    log "Already gone: /etc/ssh/sshd_config.d/rename_user.conf"
+fi
+run systemctl enable getty@tty1.service
 
 ensure_line "$BOOT_MOUNT/config.txt" "enable_uart=1"
 ensure_line "$BOOT_MOUNT/config.txt" "dtoverlay=disable-bt"
