@@ -23,6 +23,16 @@ else
     install_file 600 "$IMAGE_DIR/files/WPILibPi.nmconnection" "$KEYFILE"
 fi
 
+# Ethernet's profile retries DHCP forever, by autoconnect-retries=0: NetworkManager's default
+# of 4 stops after four 45 s DHCP timeouts and holds the profile down for 300 s, taking the
+# link-local address with it. In place of the one NetworkManager makes in /run at each boot.
+ETH_KEYFILE="/etc/NetworkManager/system-connections/Wired connection 1.nmconnection"
+if [[ -f "$ETH_KEYFILE" ]]; then
+    log "Kept existing $ETH_KEYFILE"
+else
+    install_file 600 "$IMAGE_DIR/files/Wired connection 1.nmconnection" "$ETH_KEYFILE"
+fi
+
 install_file 644 "$IMAGE_DIR/files/romi-ethernet.conf" /etc/NetworkManager/conf.d/romi-ethernet.conf
 
 if grep -q "cfg80211.ieee80211_regdom=" "$CMDLINE"; then

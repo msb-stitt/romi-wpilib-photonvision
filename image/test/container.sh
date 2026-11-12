@@ -5,7 +5,7 @@
 # deletes; the .img.xz is left alone.
 #
 #   container.sh up IMAGE.img.xz   decompress, mount, boot, wait for the services
-#   container.sh check             check the services, their ports, userconfig off, pi's shell, WiFi
+#   container.sh check             check the services, their ports, userconfig off, pi's shell, WiFi, Ethernet
 #   container.sh host DIR          run the robot project in DIR in simulation against the container,
 #                                  and check PhotonVision's AprilTag pose reaches it
 #   container.sh down              stop the container and the simulation, unmount, delete the copy
@@ -134,6 +134,20 @@ check() {
         log "WiFi profiles: the access point only, set to connect"
     else
         log "WiFi profiles are NOT the access point only, set to connect: ${wifi_files:-none}"; failed=1
+    fi
+    # Ethernet retries DHCP forever by its profile, as NetworkManager takes no retries in conf.d.
+    local eth="$ROOT/etc/NetworkManager/system-connections/Wired connection 1.nmconnection"
+    if grep -qx 'autoconnect-retries=0' "$eth" 2>/dev/null; then
+        log "Ethernet's profile retries DHCP forever"
+    else
+        log "Ethernet's profile does NOT retry DHCP forever: $eth"; failed=1
+    fi
+    local unknown
+    unknown="$(chroot "$ROOT" NetworkManager --print-config 2>&1 | grep 'unknown key' || true)"
+    if [[ -z "$unknown" ]]; then
+        log "NetworkManager knows each key in its configuration"
+    else
+        log "NetworkManager does NOT know: $unknown"; failed=1
     fi
     wait_http "wpilibws-romi status" http://127.0.0.1:9001/status || failed=1
     wait_http "PhotonVision" http://127.0.0.1:5800/ || failed=1

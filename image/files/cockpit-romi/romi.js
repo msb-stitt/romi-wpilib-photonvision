@@ -403,7 +403,7 @@ function nmcli(args) {
 // DHCP or Static on the Ethernet profile alone, with the static fallback removed.
 function saveEthSingle(profiles, ipv4) {
     const settings = [...ipv4, "ipv4.link-local", "default", "ipv4.dhcp-timeout", "0",
-                      "connection.autoconnect-priority", "0", "connection.autoconnect-retries", "-1"];
+                      "connection.autoconnect-priority", "0", "connection.autoconnect-retries", "0"];
     return (profiles.fallback ? nmcli(["connection", "delete", profiles.fallback]) : Promise.resolve())
         .then(() => nmApply(profiles.main, settings))
         .then(() => "Saved and applied");

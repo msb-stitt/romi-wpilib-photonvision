@@ -25,9 +25,11 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
   at `10.0.0.2/24`, with `ipv4.method shared` giving addresses to what joins it. WiFi is the
   access point or a client, not both at once: two profiles, `WPILibPi` and `WiFi client`, which
   the Romi page makes when a network is first joined, and only one set to connect. Ethernet
-  takes an address by DHCP and, with no answer, a `169.254` address, as WPILibPi's dhcpcd did;
-  the Romi page also sets a static address, or DHCP with a static fallback, the last by a DHCP
-  profile that gives up after 30 s and a static profile after it.
+  takes an address by DHCP and, with no answer, a `169.254` address, and keeps asking, as
+  WPILibPi's dhcpcd did; its profile, `Wired connection 1`, retries forever, where
+  NetworkManager's default stops for 300 s after four tries and drops the address. The Romi
+  page also sets a static address, or DHCP with a static fallback, the last by a DHCP profile
+  that gives up after 30 s and a static profile after it.
 - **Each Romi's access point is named `WPILibPi-` and its serial number's last 8 hex digits**,
   as WPILibPi's first boot named it. `romi-ssid.service`, before NetworkManager at each boot,
   renames a keyfile still named exactly `WPILibPi`, and makes `/boot/firmware/default-ssid.txt`

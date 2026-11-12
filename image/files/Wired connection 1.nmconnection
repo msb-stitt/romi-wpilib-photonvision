@@ -1,0 +1,11 @@
+[connection]
+id=Wired connection 1
+type=ethernet
+interface-name=eth0
+autoconnect-retries=0
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto
