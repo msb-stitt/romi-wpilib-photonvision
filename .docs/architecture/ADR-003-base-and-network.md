@@ -55,3 +55,14 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
 - The Romi page changes NetworkManager's keyfiles, and the build keeps a keyfile already there.
 - The Debian packages are not pinned: Debian's mirrors keep only the current version. Each build
   records them in `packages.txt` and on the card in `/etc/romi-image-packages.txt`.
+- `npm audit` of `image/files/wpilibws-romi/package-lock.json`, read 2026-11-11, reports two
+  packages with advisories, and four flagged through them: `node-ntcore`,
+  `@wpilib/node-wpilib-ws`, `@wpilib/wpilib-ws-robot` and `@wpilib/wpilib-ws-robot-romi`. Its only
+  fix is `wpilibws-romi` 1.0.4, an older release. Whether `wpilibws-romi` calls the affected
+  functions, or passes them input from the network, is not checked. Dependabot alerts are on for
+  the repository.
+  - `ip-address` 7.1.0, high, required as `^7.1.0` by `wpilibws-romi` and
+    `@wpilib/node-wpilib-ws`; fixed after 10.7.3: GHSA-v2v4-37r5-5v8g, GHSA-mwp4-54f8-5fhr,
+    GHSA-rpw4-54j3-4h4q, GHSA-j6r3-76f7-8jcv, GHSA-h3mg-xc3c-68pw and GHSA-rxp7-6hxx-x8q5.
+  - `uuid` 8.3.2, moderate, required as `^8.3.2` by `node-ntcore`; GHSA-w5hq-g745-h8pq, fixed in
+    11.1.1.
