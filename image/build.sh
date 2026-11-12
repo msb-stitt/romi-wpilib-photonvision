@@ -3,8 +3,9 @@
 # running each stage in the image's root as a chroot. Runs as root on Linux; a host that is not
 # arm64 needs qemu-user-static's binfmt for aarch64. With DRY_RUN=1, the default, it prints each
 # command and runs none. The result is $OUT_DIR/romi-image.img.xz with image-metadata.json and
-# packages.txt; the card holds the same record in /etc/romi-image-release and
-# /etc/romi-image-packages.txt. RUNNER_IMAGE names the machine image the build ran on, if any.
+# packages.txt, and SOURCES.md, sources.py's links to the upstream source of what it holds; the
+# card holds the same record in /etc/romi-image-release and /etc/romi-image-packages.txt.
+# RUNNER_IMAGE names the machine image the build ran on, if any.
 set -euo pipefail
 
 OUT_DIR="${OUT_DIR:-/var/tmp/romi-image}"
@@ -106,6 +107,8 @@ EOF
     chroot "$ROOT" dpkg-query -W -f='${binary:Package} ${Version}\n' > "$OUT_DIR/packages.txt"
     install -m 644 "$OUT_DIR/packages.txt" "$ROOT/etc/romi-image-packages.txt"
     log "Wrote $ROOT/etc/romi-image-release and $(wc -l < "$OUT_DIR/packages.txt") packages"
+    python3 "$IMAGE_DIR/sources.py" "$ROOT" "$COMMIT" > "$OUT_DIR/SOURCES.md"
+    log "Wrote $OUT_DIR/SOURCES.md"
 fi
 
 cleanup

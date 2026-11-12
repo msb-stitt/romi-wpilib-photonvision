@@ -25,10 +25,13 @@ and the versions used.
 `image/build.sh` makes the image from Raspberry Pi OS Trixie Lite by running the scripts in
 `image/stages/` inside it. It runs as root on Linux, and prints its commands without running them
 unless `DRY_RUN=0` is set. A stage can also be run on a running Pi. Each build records its commit,
-the base image and its Debian packages, next to the image and on the card.
+the base image and its Debian packages, next to the image and on the card; `SOURCES.md`, next to
+the image, links to the upstream source of the programs it holds.
 
-The workflow in `.github/workflows/image.yml` builds the image on GitHub's arm64 runners; a tag
-starting with `v` publishes it as a release.
+The workflow in `.github/workflows/image.yml` builds the image on GitHub's arm64 runners and boots
+its root as a container, with `image/test/container.sh`, to check its services and drive it from
+`romiPyKitTiny` in simulation; a tag starting with `v` publishes an image that passed as a
+release. `container.sh` runs the same way on an arm64 Linux machine.
 
 ## Documentation
 
