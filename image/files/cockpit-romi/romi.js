@@ -1,7 +1,7 @@
 "use strict";
 
 const SERVICE = "wpilibws-romi";
-const ROMI_JSON = "/boot/firmware/romi.json";
+const ROMI_JSON = "/etc/romi/romi.json";
 const STATUS_PORT = 9001;
 const LOG_LINES = "15";
 const EXT_PINS = 5;

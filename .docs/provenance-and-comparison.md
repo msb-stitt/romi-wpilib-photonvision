@@ -40,6 +40,7 @@ upstream projects: WPILibPi's Romi stage, `stage5`, and PhotonVision's `photon-i
   vision tabs and no file or service uploads.
 - **Vision:** PhotonVision, by its own `install.sh`, in place of WPILib's vision programs.
 - **The card:** read-write. WPILibPi's was read-only.
+- **`romi.json`:** in `/etc/romi/` on the ext4 root, not in the FAT boot partition.
 - **Running Pi:** each stage also runs on a Pi that is already up.
 
 It differs from this repository's own earlier plan too: no Javalin dashboard and no fork of

@@ -27,6 +27,10 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
   3300 by `halsim_ws_client`. PhotonVision's NetworkTables client, at team 0, asks
   `wpilibws-romi` on port 1742 for the server's address, and gets the host PC's.
 - **The dashboard:** Cockpit from Trixie's packages, with the Romi page first in its menu.
+- **The card stays writable, and `romi.json` is in `/etc/romi/` on the ext4 root**, where
+  WPILibPi kept it in the FAT boot partition. FAT has no journal, so a power-off during a save
+  could damage the partition the Pi boots from; ext4's journal and Cockpit's write of a
+  temporary file, `fdatasync` and rename keep a save from doing that.
 - **The account:** `pi`, password `raspberry`, with passwordless `sudo`; cloud-init off, so its
   first boot does not lock that password.
 
@@ -53,6 +57,8 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
   v2027.2.3's installs Java 25, and PhotonVision v2026.3.4 runs on it.
 - The access point's passphrase is what keeps others off the Pi, as the account is known.
 - The Romi page changes NetworkManager's keyfiles, and the build keeps a keyfile already there.
+- `romi.json` can no longer be edited from a PC's card reader, as the boot partition allowed.
+  `04-romi-core.sh` moves one it finds in `/boot/firmware/` to `/etc/romi/`.
 - The Debian packages are not pinned: Debian's mirrors keep only the current version. Each build
   records them in `packages.txt` and on the card in `/etc/romi-image-packages.txt`.
 - `npm audit` of `image/files/wpilibws-romi/package-lock.json`, read 2026-11-11, reports two

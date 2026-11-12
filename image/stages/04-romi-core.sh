@@ -39,10 +39,20 @@ if [[ "$DRY_RUN" != "1" ]]; then
     [[ -e "$I2C_NODE" ]] || die "i2c-bus did not build; wpilibws-romi would fall back to its mock I2C"
 fi
 
-if [[ ! -f "$BOOT_MOUNT/romi.json" ]]; then
-    run install -m 644 "$FILES/romi.json" "$BOOT_MOUNT/romi.json"
+# romi.json lives on the ext4 root, not in the FAT boot partition as WPILibPi kept it: the card
+# stays writable, and FAT has no journal, so a power-off during a save could damage the
+# partition the Pi boots from. One left in the boot partition by an earlier card is moved.
+ROMI_JSON=/etc/romi/romi.json
+if [[ -f "$ROMI_JSON" ]]; then
+    log "Kept existing $ROMI_JSON"
+elif [[ -f "$BOOT_MOUNT/romi.json" ]]; then
+    run install -D -m 644 "$BOOT_MOUNT/romi.json" "$ROMI_JSON"
+    if [[ "$DRY_RUN" != "1" ]]; then
+        cmp -s "$BOOT_MOUNT/romi.json" "$ROMI_JSON" || die "romi.json was not copied to $ROMI_JSON"
+    fi
+    run rm "$BOOT_MOUNT/romi.json"
 else
-    log "Kept existing $BOOT_MOUNT/romi.json"
+    run install -D -m 644 "$FILES/romi.json" "$ROMI_JSON"
 fi
 
 hex="$ROMI_PACKAGE/firmware/.pio/build/a-star32U4/firmware.hex"
