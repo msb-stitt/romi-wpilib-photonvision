@@ -3,10 +3,12 @@
 ROOT, its boot partition included at /boot/firmware, sorted by path.
 
 Each line is tab-separated: the path; the type, `f` file, `l` link or `o` other; the mode in
-octal; the owner as `uid:gid`; the file's SHA-256, the link's target, or nothing; and the Debian
-package that owns the path by dpkg's lists, or `-`. Directories are left out. So is anything on a
-file system other than the root's and the boot partition's, such as the /dev, /proc and /sys a
-chroot binds in, and their contents.
+octal and the owner as `uid:gid`, each `-` on the boot partition; the file's SHA-256, the link's
+target, or nothing; and the Debian package that owns the path by dpkg's lists, or `-`. The boot
+partition is FAT, which stores no mode or owner: the mount makes them up from its options, so
+they are not the image's. Directories are left out. So is anything on a file system other than
+the root's and the boot partition's, such as the /dev, /proc and /sys a chroot binds in, and
+their contents.
 """
 
 import hashlib
@@ -47,7 +49,8 @@ def sha256(path):
 
 def entries(root):
     """Yield (path, type, mode, owner, detail) for each entry under root, skipping directories."""
-    devices = {root.stat().st_dev}
+    root_device = root.stat().st_dev
+    devices = {root_device}
     boot = root / "boot/firmware"
     if boot.is_dir():
         devices.add(boot.stat().st_dev)
@@ -67,8 +70,10 @@ def entries(root):
             if st.st_dev not in devices:
                 continue
             path = "/" + os.path.relpath(full, root)
-            mode = f"{stat.S_IMODE(st.st_mode):o}"
-            owner = f"{st.st_uid}:{st.st_gid}"
+            if st.st_dev == root_device:
+                mode, owner = f"{stat.S_IMODE(st.st_mode):o}", f"{st.st_uid}:{st.st_gid}"
+            else:
+                mode, owner = "-", "-"
             if stat.S_ISLNK(st.st_mode):
                 yield path, "l", mode, owner, os.readlink(full)
             elif stat.S_ISREG(st.st_mode):
