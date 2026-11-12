@@ -1,5 +1,6 @@
-# image.yml: builds the Romi image with image/build.sh on an arm64 runner. A push that changes
-# image/ keeps the image as a workflow artifact; a tag starting with v publishes it as a release.
+# image.yml: builds the Romi image with image/build.sh on an arm64 runner, keeps it as a workflow
+# artifact, and boots its root as a container with image/test/container.sh, with romiPyKitTiny in
+# simulation on the runner. A tag starting with v publishes an image that passed as a release.
 name: Romi image
 
 on:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 120
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -34,21 +35,84 @@ jobs:
           cat "$OUT_DIR/image-metadata.json"
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         with:
           name: romi-image
           path: |
             ${{ env.OUT_DIR }}/romi-image.img.xz
             ${{ env.OUT_DIR }}/image-metadata.json
             ${{ env.OUT_DIR }}/packages.txt
+            ${{ env.OUT_DIR }}/SOURCES.md
             ${{ env.OUT_DIR }}/build.log
           compression-level: 0
           retention-days: 7
 
+  container:
+    needs: build
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 60
+    env:
+      ROMI_PY_KIT_TINY_COMMIT: 7e1fa962c358d7a534abe42a01f8b05b6644dc99
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: romi-image
+          path: ${{ runner.temp }}/romi-image
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: 0.12.21
+
+      - name: Get romiPyKitTiny
+        run: |
+          git init -q "$RUNNER_TEMP/romiPyKitTiny"
+          cd "$RUNNER_TEMP/romiPyKitTiny"
+          git fetch -q --depth 1 https://github.com/msb-stitt/romiPyKitTiny.git \
+            "$ROMI_PY_KIT_TINY_COMMIT"
+          git checkout -q FETCH_HEAD
+          uv sync --locked --managed-python --python 3.14
+
+      - name: Install systemd-nspawn
+        run: sudo apt-get install -y --no-install-recommends systemd-container
+
+      - name: Boot the image's root as a container
+        run: sudo image/test/container.sh up "$RUNNER_TEMP/romi-image/romi-image.img.xz"
+
+      - name: Check its services
+        run: sudo image/test/container.sh check
+
+      - name: Drive it from the simulation
+        run: sudo image/test/container.sh host "$RUNNER_TEMP/romiPyKitTiny"
+
+      - name: Logs
+        if: ${{ always() }}
+        run: |
+          sudo systemctl -M romi --no-pager --failed || true
+          sudo journalctl -M romi --no-pager -u wpilibws-romi -u photonvision -n 60 || true
+          sudo journalctl --no-pager -u romi-sim -n 40 || true
+
+      - name: Stop the container
+        if: ${{ always() }}
+        run: sudo image/test/container.sh down
+
+  release:
+    needs: [build, container]
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: romi-image
+          path: romi-image
+
       - name: Release
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes \
-            "$OUT_DIR/romi-image.img.xz" "$OUT_DIR/image-metadata.json" "$OUT_DIR/packages.txt"
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" --generate-notes \
+            romi-image/romi-image.img.xz romi-image/image-metadata.json romi-image/packages.txt \
+            romi-image/SOURCES.md
