@@ -230,13 +230,15 @@ function calibrate() {
         .catch(err => done(`Calibration did not start: ${failure(err)}`));
 }
 
-// The NetworkManager profile for WiFi, made by 02-network.sh, in either mode.
-const WIFI = "WPILibPi";
-const AP_ADDRESS = "10.0.0.2/24";
+// WiFi's two NetworkManager profiles, only one set to connect: the access point, made by
+// 02-network.sh, and the network joined, made here the first time one is joined.
+const AP = "WPILibPi";
+const CLIENT = "WiFi client";
 const WIFI_CHANNELS = 11;
-const WIFI_FIELDS = ["802-11-wireless.mode", "802-11-wireless.ssid", "802-11-wireless.channel",
-                     "802-11-wireless-security.psk", "ipv4.method", "ipv4.addresses",
-                     "ipv4.gateway", "ipv4.dns"];
+const AP_FIELDS = ["connection.autoconnect", "802-11-wireless.ssid", "802-11-wireless.channel",
+                   "802-11-wireless-security.psk"];
+const CLIENT_FIELDS = ["connection.autoconnect", "802-11-wireless.ssid", "802-11-wireless-security.psk",
+                       "ipv4.method", "ipv4.addresses", "ipv4.gateway", "ipv4.dns"];
 const ETH_FIELDS = ["ipv4.method", "ipv4.addresses", "ipv4.gateway", "ipv4.dns"];
 // "DHCP with static fallback", as WPILibPi's dhcpcd did it: the Ethernet profile asks by DHCP for
 // 30 s, dhcpcd's timeout, once, and then this second profile, at a lower priority, takes over.
@@ -280,17 +282,22 @@ function ethProfiles() {
         });
 }
 
+// Whether the network joined has a profile yet.
+function clientExists() {
+    return cockpit.spawn(["nmcli", "-t", "-g", "NAME", "connection", "show"], { err: "message" })
+        .then(out => out.split("\n").includes(CLIENT));
+}
+
 function wifiMode() {
     return document.querySelector("input[name=wifi-mode]:checked").value;
 }
 
 function showNetworkRows() {
-    const wifi = document.getElementById("wifi");
     const client = wifiMode() === "client";
-    wifi.querySelectorAll(".ap-only").forEach(e => { e.hidden = client; });
-    wifi.querySelectorAll(".client-only").forEach(e => { e.hidden = !client; });
-    wifi.querySelectorAll(".static-only").forEach(e => {
-        e.hidden = !client || value("wifi-method") !== "manual";
+    document.getElementById("wifi-ap").disabled = client;
+    document.getElementById("wifi-client").disabled = !client;
+    document.getElementById("wifi-client").querySelectorAll(".static-only").forEach(e => {
+        e.hidden = value("client-method") !== "manual";
     });
     document.getElementById("eth").querySelectorAll(".static-only").forEach(e => {
         e.hidden = value("eth-method") === "auto";
@@ -298,17 +305,21 @@ function showNetworkRows() {
 }
 
 function loadNetwork() {
-    nmGet(WIFI, WIFI_FIELDS)
-        .then(([mode, ssid, channel, psk, method, address, gateway, dns]) => {
-            const client = mode !== "ap";
-            document.querySelector(`input[name=wifi-mode][value=${client ? "client" : "ap"}]`).checked = true;
-            setValue("wifi-ssid", ssid);
-            setValue("wifi-psk", psk);
-            setValue("wifi-channel", channel === "0" ? "6" : channel);
-            setValue("wifi-method", client && method === "manual" ? "manual" : "auto");
-            setValue("wifi-address", client ? address : "");
-            setValue("wifi-gateway", client ? gateway : "");
-            setValue("wifi-dns", client ? dns : "");
+    Promise.all([nmGet(AP, AP_FIELDS),
+                 clientExists().then(exists => exists ? nmGet(CLIENT, CLIENT_FIELDS) : null)])
+        .then(([[, apSsid, channel, apPsk], client]) => {
+            const [joining, ssid, psk, method, address, gateway, dns] = client || [];
+            document.querySelector(`input[name=wifi-mode][value=${joining === "yes" ? "client" : "ap"}]`)
+                .checked = true;
+            setValue("ap-ssid", apSsid);
+            setValue("ap-psk", apPsk);
+            setValue("ap-channel", channel === "0" ? "6" : channel);
+            setValue("client-ssid", ssid || "");
+            setValue("client-psk", psk || "");
+            setValue("client-method", method === "manual" ? "manual" : "auto");
+            setValue("client-address", method === "manual" ? address : "");
+            setValue("client-gateway", method === "manual" ? gateway : "");
+            setValue("client-dns", method === "manual" ? dns : "");
             showNetworkRows();
         })
         .catch(err => show("wifi-result", `Could not read the WiFi settings: ${failure(err)}`));
@@ -336,32 +347,51 @@ function ipv4Settings(prefix) {
             "ipv4.gateway", value(`${prefix}-gateway`), "ipv4.dns", value(`${prefix}-dns`)];
 }
 
+// The SSID and passphrase from the inputs named by prefix, as nmcli settings.
+function wifiSecurity(prefix) {
+    const ssid = value(`${prefix}-ssid`);
+    const psk = document.getElementById(`${prefix}-psk`).value;
+    if (ssid.length < 1) throw new Error("the SSID is empty");
+    if (psk.length < 8 || psk.length > 63) throw new Error("the passphrase is 8 to 63 characters");
+    return ["802-11-wireless.ssid", ssid, "802-11-wireless-security.key-mgmt", "wpa-psk",
+            "802-11-wireless-security.psk", psk];
+}
+
+// The access point set to connect, and the network joined, if there is one, set not to.
+function useAccessPoint(settings, exists) {
+    return nmcli(["connection", "modify", AP, ...settings, "connection.autoconnect", "yes"])
+        .then(() => exists && nmcli(["connection", "modify", CLIENT, "connection.autoconnect", "no"]))
+        .then(() => nmcli(["connection", "up", AP]));
+}
+
+// The network joined set to connect and the access point not; the access point is used again
+// if the Pi cannot join.
+function joinNetwork(settings, exists) {
+    const client = [...settings, "connection.autoconnect", "yes"];
+    return (exists ? nmcli(["connection", "modify", CLIENT, ...client])
+                   : nmcli(["connection", "add", "type", "wifi", "ifname", "wlan0", "con-name", CLIENT, ...client]))
+        .then(() => nmcli(["connection", "modify", AP, "connection.autoconnect", "no"]))
+        .then(() => nmcli(["connection", "up", CLIENT]).then(
+            () => "Saved and joined",
+            err => useAccessPoint([], true).then(
+                () => `Not joined: ${failure(err)}; the access point is back`)));
+}
+
 function saveWifi() {
-    const ssid = value("wifi-ssid");
-    const psk = document.getElementById("wifi-psk").value;
+    const ap = wifiMode() === "ap";
     let settings;
     try {
-        if (ssid.length < 1) throw new Error("the SSID is empty");
-        if (psk.length < 8 || psk.length > 63) throw new Error("the passphrase is 8 to 63 characters");
-        settings = ["802-11-wireless.ssid", ssid,
-                    "802-11-wireless-security.key-mgmt", "wpa-psk",
-                    "802-11-wireless-security.psk", psk];
-        if (wifiMode() === "ap") {
-            settings.push("802-11-wireless.mode", "ap", "802-11-wireless.band", "bg",
-                          "802-11-wireless.channel", value("wifi-channel"),
-                          "ipv4.method", "shared", "ipv4.addresses", AP_ADDRESS,
-                          "ipv4.gateway", "", "ipv4.dns", "");
-        } else {
-            settings.push("802-11-wireless.mode", "infrastructure", "802-11-wireless.band", "",
-                          "802-11-wireless.channel", "0", ...ipv4Settings("wifi"));
-        }
+        settings = ap ? [...wifiSecurity("ap"), "802-11-wireless.channel", value("ap-channel")]
+                      : [...wifiSecurity("client"), ...ipv4Settings("client")];
     } catch (err) {
         show("wifi-result", `Not saved: ${err.message}`);
         return;
     }
     show("wifi-result", "Applying");
-    nmApply(WIFI, settings)
-        .then(() => show("wifi-result", "Saved and applied"))
+    clientExists()
+        .then(exists => ap ? useAccessPoint(settings, exists).then(() => "Saved and applied")
+                           : joinNetwork(settings, exists))
+        .then(message => show("wifi-result", message))
         .catch(err => show("wifi-result", `Not applied: ${failure(err)}`))
         .finally(loadNetwork);
 }
@@ -382,7 +412,8 @@ function saveEthSingle(profiles, ipv4) {
 // DHCP with static fallback: the Ethernet profile by DHCP, tried first and once, then the
 // fallback's static address. Applied now the same way: the fallback comes up if DHCP gives none.
 function saveEthFallback(profiles, ipv4) {
-    const fallback = [...ipv4, "connection.autoconnect", "yes", "connection.autoconnect-priority", "0"];
+    const fallback = [...ipv4, "ipv4.link-local", "disabled",
+                      "connection.autoconnect", "yes", "connection.autoconnect-priority", "0"];
     const dhcp = ["ipv4.method", "auto", "ipv4.addresses", "", "ipv4.gateway", "", "ipv4.dns", "",
                   "ipv4.link-local", "disabled", "ipv4.dhcp-timeout", ETH_DHCP_TIMEOUT,
                   "connection.autoconnect-priority", "10", "connection.autoconnect-retries", "1"];
@@ -416,10 +447,10 @@ function saveEth() {
 }
 
 for (let ch = 1; ch <= WIFI_CHANNELS; ch++) {
-    document.getElementById("wifi-channel").add(new Option(String(ch), String(ch)));
+    document.getElementById("ap-channel").add(new Option(String(ch), String(ch)));
 }
 document.querySelectorAll("input[name=wifi-mode]").forEach(e => e.addEventListener("change", showNetworkRows));
-document.getElementById("wifi-method").addEventListener("change", showNetworkRows);
+document.getElementById("client-method").addEventListener("change", showNetworkRows);
 document.getElementById("eth-method").addEventListener("change", showNetworkRows);
 document.getElementById("save-wifi").addEventListener("click", saveWifi);
 document.getElementById("save-eth").addEventListener("click", saveEth);

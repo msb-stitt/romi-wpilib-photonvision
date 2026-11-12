@@ -116,8 +116,37 @@ EOF
     log "Wrote $OUT_DIR/SOURCES.md"
 fi
 
+# The root shrunk to its files, as photon-image-runner's pack_image.sh shrinks PhotonVision's, so
+# a card is written in less time; the Pi grows it to the card at its first boot. Free space is
+# zero-filled first, so what deleted files left compresses away.
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "[DRY-RUN] zero-fill $ROOT's free space"
+else
+    log "Zero-filling $ROOT's free space"
+    cat /dev/zero > "$ROOT/zeros" 2>/dev/null || true
+    sync
+    rm -f "$ROOT/zeros"
+fi
+loop_keep="$loop"
+loop=""
 cleanup
 mounts=()
+loop="$loop_keep"
+run e2fsck -p -f "${loop}p2"
+run resize2fs -M "${loop}p2"
+if [[ "$DRY_RUN" == "1" ]]; then
+    log "[DRY-RUN] cut partition 2 and $IMG to the root's size"
+else
+    block_size="$(tune2fs -l "${loop}p2" | awk '/^Block size/ {print $NF}')"
+    block_count="$(tune2fs -l "${loop}p2" | awk '/^Block count/ {print $NF}')"
+    part_start="$(parted -m -s "$loop" unit B print | awk -F: '$1 == 2 {print $2}' | tr -d B)"
+    part_end=$((part_start + block_count * block_size - 1))
+    echo Yes | parted ---pretend-input-tty "$loop" unit B resizepart 2 "${part_end}B"
+    losetup -d "$loop"
+    loop=""
+    truncate -s $((part_end + 1)) "$IMG"
+    log "Root shrunk to $((block_count * block_size)) bytes; $IMG is $(stat -c %s "$IMG") bytes"
+fi
 loop=""
 
 run bash -c "xz -T0 -c '$IMG' > '$IMG.xz'"

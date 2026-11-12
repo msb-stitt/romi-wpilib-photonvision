@@ -24,3 +24,11 @@ td, th {
     padding: 0.2rem 0.8rem 0.2rem 0;
     text-align: left;
 }
+
+fieldset {
+    margin: 0.5rem 0;
+}
+
+fieldset:disabled {
+    color: #888;
+}

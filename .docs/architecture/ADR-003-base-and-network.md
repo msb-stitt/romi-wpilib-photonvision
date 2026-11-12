@@ -23,7 +23,8 @@ last Romi image, v2023.2.1, is built on Bullseye, and no Bookworm or Trixie Romi
   `pi`, with I2C on.
 - **The network:** NetworkManager makes the access point `WPILibPi`, passphrase `WPILib2021!`,
   at `10.0.0.2/24`, with `ipv4.method shared` giving addresses to what joins it. WiFi is the
-  access point or a client, one profile switched between the two, not both at once. Ethernet
+  access point or a client, not both at once: two profiles, `WPILibPi` and `WiFi client`, which
+  the Romi page makes when a network is first joined, and only one set to connect. Ethernet
   takes an address by DHCP and, with no answer, a `169.254` address, as WPILibPi's dhcpcd did;
   the Romi page also sets a static address, or DHCP with a static fallback, the last by a DHCP
   profile that gives up after 30 s and a static profile after it.

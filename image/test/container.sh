@@ -22,6 +22,7 @@ set -euo pipefail
 
 WORK="${WORK:-/var/tmp/romi-container}"
 MACHINE=romi
+GROW_MB="${GROW_MB:-1024}"
 IMG="$WORK/romi-image.img"
 ROOT="$WORK/root"
 MASKED=(NetworkManager.service NetworkManager-wait-online.service wpa_supplicant.service
@@ -48,8 +49,13 @@ up() {
     mkdir -p "$WORK" "$ROOT"
     log "Decompressing $xz"
     xz -dc -T0 "$xz" > "$IMG"
+    # The image's root is shrunk to its files; grown here, as the Pi grows it at its first boot.
+    truncate -s +"$GROW_MB"M "$IMG"
+    parted -s "$IMG" resizepart 2 100%
     local loop
     loop="$(losetup -P -f --show "$IMG")"
+    e2fsck -p -f "${loop}p2"
+    resize2fs "${loop}p2"
     echo "$loop" > "$WORK/loop"
     mount "${loop}p2" "$ROOT"
     mount "${loop}p1" "$ROOT/boot/firmware"
@@ -119,6 +125,15 @@ check() {
         log "WiFi not blocked by rfkill's saved state or NetworkManager's"
     else
         log "WiFi blocked by $blocked"; failed=1
+    fi
+    # WiFi's network joined is made by the Romi page; the image has only the access point, set to connect.
+    local wifi_files
+    wifi_files="$(grep -l '^type=wifi' "$ROOT"/etc/NetworkManager/system-connections/* 2>/dev/null || true)"
+    if [[ "$wifi_files" == "$ROOT/etc/NetworkManager/system-connections/WPILibPi.nmconnection" ]] &&
+        ! grep -qx 'autoconnect=false' "$wifi_files"; then
+        log "WiFi profiles: the access point only, set to connect"
+    else
+        log "WiFi profiles are NOT the access point only, set to connect: ${wifi_files:-none}"; failed=1
     fi
     wait_http "wpilibws-romi status" http://127.0.0.1:9001/status || failed=1
     wait_http "PhotonVision" http://127.0.0.1:5800/ || failed=1

@@ -74,23 +74,30 @@
 
     <section id="wifi">
         <h2>WiFi</h2>
-        <p>
-            <label><input type="radio" name="wifi-mode" value="ap" checked> Access point</label>
-            <label><input type="radio" name="wifi-mode" value="client"> Join a network</label>
-        </p>
-        <table>
-            <tr><td>SSID</td><td><input id="wifi-ssid" maxlength="32"></td></tr>
-            <tr><td>Passphrase</td><td><input id="wifi-psk" type="password" maxlength="63"></td></tr>
-            <tr class="ap-only"><td>Channel</td><td><select id="wifi-channel"></select></td></tr>
-            <tr class="client-only"><td>Address</td><td><select id="wifi-method">
-                <option value="auto">DHCP</option>
-                <option value="manual">Static</option>
-            </select></td></tr>
-            <tr class="client-only static-only"><td>Address/prefix</td><td><input id="wifi-address" placeholder="192.168.1.50/24"></td></tr>
-            <tr class="client-only static-only"><td>Gateway</td><td><input id="wifi-gateway"></td></tr>
-            <tr class="client-only static-only"><td>DNS</td><td><input id="wifi-dns"></td></tr>
-        </table>
-        <p class="ap-only">The access point is at 10.0.0.2 and gives out addresses to what joins it.</p>
+        <fieldset id="wifi-ap">
+            <legend><label><input type="radio" name="wifi-mode" value="ap" checked> Access point</label></legend>
+            <table>
+                <tr><td>SSID</td><td><input id="ap-ssid" name="ap-ssid" maxlength="32" autocomplete="off"></td></tr>
+                <tr><td>Passphrase</td><td><input id="ap-psk" name="ap-passphrase" type="password" maxlength="63" autocomplete="new-password"></td></tr>
+                <tr><td>Channel</td><td><select id="ap-channel"></select></td></tr>
+            </table>
+            <p>The access point is at 10.0.0.2 and gives out addresses to what joins it.</p>
+        </fieldset>
+        <fieldset id="wifi-client">
+            <legend><label><input type="radio" name="wifi-mode" value="client"> Join a network</label></legend>
+            <table>
+                <tr><td>SSID</td><td><input id="client-ssid" name="client-ssid" maxlength="32" autocomplete="off"></td></tr>
+                <tr><td>Passphrase</td><td><input id="client-psk" name="client-passphrase" type="password" maxlength="63" autocomplete="new-password"></td></tr>
+                <tr><td>Address</td><td><select id="client-method">
+                    <option value="auto">DHCP</option>
+                    <option value="manual">Static</option>
+                </select></td></tr>
+                <tr class="static-only"><td>Address/prefix</td><td><input id="client-address" placeholder="192.168.1.50/24"></td></tr>
+                <tr class="static-only"><td>Gateway</td><td><input id="client-gateway"></td></tr>
+                <tr class="static-only"><td>DNS</td><td><input id="client-dns"></td></tr>
+            </table>
+            <p>If the Pi cannot join the network, the access point comes back.</p>
+        </fieldset>
         <p><button id="save-wifi">Save and apply</button></p>
         <p id="wifi-result"></p>
     </section>
